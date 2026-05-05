@@ -48,7 +48,7 @@ jobs:
         with:
           repository: ${{ github.repository_owner }}/backend
           path: backend
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.ORG_PAT }}
 
       - name: Checkout frontends (build mode)
         if: github.event_name != 'workflow_dispatch'
@@ -56,7 +56,7 @@ jobs:
         with:
           repository: ${{ github.repository_owner }}/frontends
           path: frontends
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.ORG_PAT }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
