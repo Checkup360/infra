@@ -1,4 +1,5 @@
 import { defineConfig, devices } from "@playwright/test"
+import { defineBddConfig } from "playwright-bdd"
 
 const PUBLIC_WEB_ORIGIN = process.env.PUBLIC_WEB_ORIGIN ?? "http://localhost:5173"
 const PUBLIC_DASHBOARD_ORIGIN =
@@ -7,8 +8,13 @@ const PUBLIC_BACKOFFICE_ORIGIN =
   process.env.PUBLIC_BACKOFFICE_ORIGIN ?? "http://localhost:5175"
 const PUBLIC_API_ORIGIN = process.env.PUBLIC_API_ORIGIN ?? "http://localhost:8000"
 
+const bddTestDir = defineBddConfig({
+  features: "features/**/*.feature",
+  steps: "features/steps/**/*.ts",
+})
+
 export default defineConfig({
-  testDir: "./tests",
+  testDir: bddTestDir,
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,

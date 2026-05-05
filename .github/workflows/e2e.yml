@@ -14,11 +14,11 @@ on:
       backend_repo:
         description: "Repo (owner/name) hosting the backend image"
         required: true
-        default: Checkup360/backend
+        default: checkup360/backend
       frontends_owner:
         description: "GHCR owner of the frontends-* images"
         required: true
-        default: Checkup360
+        default: checkup360
   push:
     branches: [main]
   pull_request:
@@ -27,16 +27,19 @@ on:
 permissions:
   contents: read
   packages: read
+  actions: write
 
 env:
   COMPOSE_FILE_BASE: docker-compose.e2e.yml
   COMPOSE_FILE_LOCAL: docker-compose.e2e.local.yml
+  COMPOSE_FILE_CI_CACHE: docker-compose.e2e.ci-cache.yml
 
 jobs:
   e2e:
     runs-on: ubuntu-latest
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+      DOCKER_BUILDKIT: 1
 
     steps:
       - name: Checkout infra
@@ -107,8 +110,8 @@ jobs:
         if: github.event_name != 'workflow_dispatch'
         working-directory: infra
         run: |
-          docker compose -f $COMPOSE_FILE_BASE -f $COMPOSE_FILE_LOCAL --env-file .env.e2e build
-          docker compose -f $COMPOSE_FILE_BASE -f $COMPOSE_FILE_LOCAL --env-file .env.e2e up -d \
+          docker compose -f $COMPOSE_FILE_BASE -f $COMPOSE_FILE_LOCAL -f $COMPOSE_FILE_CI_CACHE --env-file .env.e2e build
+          docker compose -f $COMPOSE_FILE_BASE -f $COMPOSE_FILE_LOCAL -f $COMPOSE_FILE_CI_CACHE --env-file .env.e2e up -d \
             db backend web dashboard backoffice
 
       - name: Setup pnpm
@@ -158,7 +161,7 @@ jobs:
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             docker compose -f $COMPOSE_FILE_BASE --env-file .env.e2e logs --no-color
           else
-            docker compose -f $COMPOSE_FILE_BASE -f $COMPOSE_FILE_LOCAL --env-file .env.e2e logs --no-color
+            docker compose -f $COMPOSE_FILE_BASE -f $COMPOSE_FILE_LOCAL -f $COMPOSE_FILE_CI_CACHE --env-file .env.e2e logs --no-color
           fi
 
       - name: Tear down
@@ -168,7 +171,7 @@ jobs:
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             docker compose -f $COMPOSE_FILE_BASE --env-file .env.e2e down -v
           else
-            docker compose -f $COMPOSE_FILE_BASE -f $COMPOSE_FILE_LOCAL --env-file .env.e2e down -v
+            docker compose -f $COMPOSE_FILE_BASE -f $COMPOSE_FILE_LOCAL -f $COMPOSE_FILE_CI_CACHE --env-file .env.e2e down -v
           fi
 
       - name: Upload Playwright report

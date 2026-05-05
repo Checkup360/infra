@@ -1,0 +1,28 @@
+services:
+  backend:
+    build:
+      cache_from:
+        - type=gha,scope=e2e-backend
+      cache_to:
+        - type=gha,mode=max,scope=e2e-backend
+
+  web:
+    build:
+      cache_from:
+        - type=gha,scope=e2e-front-web
+      cache_to:
+        - type=gha,mode=max,scope=e2e-front-web
+
+  dashboard:
+    build:
+      cache_from:
+        - type=gha,scope=e2e-front-dashboard
+      cache_to:
+        - type=gha,mode=max,scope=e2e-front-dashboard
+
+  backoffice:
+    build:
+      cache_from:
+        - type=gha,scope=e2e-front-backoffice
+      cache_to:
+        - type=gha,mode=max,scope=e2e-front-backoffice
