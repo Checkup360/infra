@@ -1,0 +1,33 @@
+services:
+  backend:
+    image: checkup360/backend:local
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+
+  web:
+    image: checkup360/frontends-web:local
+    build:
+      context: ../frontends
+      dockerfile: Dockerfile
+      args:
+        APP: web
+        VITE_PUBLIC_API_ORIGIN: ${PUBLIC_API_ORIGIN:-http://localhost:8000}
+
+  dashboard:
+    image: checkup360/frontends-dashboard:local
+    build:
+      context: ../frontends
+      dockerfile: Dockerfile
+      args:
+        APP: dashboard
+        VITE_PUBLIC_API_ORIGIN: ${PUBLIC_API_ORIGIN:-http://localhost:8000}
+
+  backoffice:
+    image: checkup360/frontends-backoffice:local
+    build:
+      context: ../frontends
+      dockerfile: Dockerfile
+      args:
+        APP: backoffice
+        VITE_PUBLIC_API_ORIGIN: ${PUBLIC_API_ORIGIN:-http://localhost:8000}
