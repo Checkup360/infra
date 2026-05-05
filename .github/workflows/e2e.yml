@@ -14,11 +14,11 @@ on:
       backend_repo:
         description: "Repo (owner/name) hosting the backend image"
         required: true
-        default: ${{ github.repository_owner }}/backend
+        default: Checkup360/backend
       frontends_owner:
         description: "GHCR owner of the frontends-* images"
         required: true
-        default: ${{ github.repository_owner }}
+        default: Checkup360
   push:
     branches: [main]
   pull_request:
