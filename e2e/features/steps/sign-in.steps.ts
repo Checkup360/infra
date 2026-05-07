@@ -53,14 +53,14 @@ Then("they see the backoffice page", async ({ page }) => {
 
 When("they submit their email and password", async ({ page }) => {
   await page.getByLabel("Email").fill(superuserEmail())
-  await page.getByLabel("Contraseña").fill(superuserPassword())
-  await page.getByRole("button", { name: /iniciar sesión/i }).click()
+  await page.getByLabel("Password").fill(superuserPassword())
+  await page.getByRole("button", { name: /sign in/i }).click()
 })
 
 When("they submit their email and a wrong password", async ({ page }) => {
   await page.getByLabel("Email").fill(superuserEmail())
-  await page.getByLabel("Contraseña").fill("definitely-wrong-password")
-  await page.getByRole("button", { name: /iniciar sesión/i }).click()
+  await page.getByLabel("Password").fill("definitely-wrong-password")
+  await page.getByRole("button", { name: /sign in/i }).click()
 })
 
 Then("they are signed in with full administrator access", async ({ page }) => {
