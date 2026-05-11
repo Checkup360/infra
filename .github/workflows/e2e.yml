@@ -23,8 +23,16 @@ on:
         type: string
   push:
     branches: [main]
+    paths:
+      - 'e2e/**'
+      - 'docker-compose.e2e*.yml'
+      - '.github/workflows/e2e.yml'
   pull_request:
     branches: [main]
+    paths:
+      - 'e2e/**'
+      - 'docker-compose.e2e*.yml'
+      - '.github/workflows/e2e.yml'
 
 permissions:
   contents: read

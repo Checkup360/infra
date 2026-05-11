@@ -32,7 +32,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Deploy to staging
-        uses: appleboy/ssh-action@v1.10.0
+        uses: appleboy/ssh-action@v1.2.5
         env:
           ENV_FILE: ${{ secrets.ENV_FILE }}
           BACKEND_VERSION: ${{ inputs.backend_version }}
@@ -61,7 +61,7 @@ jobs:
             docker compose -f deploy/staging/docker-compose.yml up -d
 
       - name: Verify deployment
-        uses: appleboy/ssh-action@v1.10.0
+        uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.DEPLOY_SERVER_HOST }}
           username: ${{ secrets.DEPLOY_SSH_USER }}
