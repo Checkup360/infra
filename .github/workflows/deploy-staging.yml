@@ -37,13 +37,13 @@ jobs:
           ENV_FILE: ${{ secrets.ENV_FILE }}
           BACKEND_VERSION: ${{ inputs.backend_version }}
           FRONTENDS_VERSION: ${{ inputs.frontends_version }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ORG_PAT: ${{ secrets.ORG_PAT }}
           GITHUB_ACTOR: ${{ github.actor }}
         with:
           host: ${{ secrets.DEPLOY_SERVER_HOST }}
           username: ${{ secrets.DEPLOY_SSH_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
-          envs: ENV_FILE,BACKEND_VERSION,FRONTENDS_VERSION,GITHUB_TOKEN,GITHUB_ACTOR
+          envs: ENV_FILE,BACKEND_VERSION,FRONTENDS_VERSION,ORG_PAT,GITHUB_ACTOR
           script: |
             # Write .env to the docker-compose directory
             # Docker Compose looks for .env in the same dir as docker-compose.yml
@@ -54,8 +54,8 @@ jobs:
               echo "FRONTENDS_VERSION=$FRONTENDS_VERSION"
             } > /opt/app/deploy/staging/.env
 
-            # Login to GHCR from server
-            echo "$GITHUB_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+            # Login to GHCR with org token (has package read permissions)
+            echo "$ORG_PAT" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
 
             cd /opt/app/deploy/staging
             docker compose pull
