@@ -45,20 +45,21 @@ jobs:
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           envs: ENV_FILE,BACKEND_VERSION,FRONTENDS_VERSION,GITHUB_TOKEN,GITHUB_ACTOR
           script: |
-            # Write .env to server
+            # Write .env to the docker-compose directory
+            # Docker Compose looks for .env in the same dir as docker-compose.yml
             {
               echo "$ENV_FILE"
               echo "IMAGE_REGISTRY=ghcr.io/checkup360"
               echo "BACKEND_VERSION=$BACKEND_VERSION"
               echo "FRONTENDS_VERSION=$FRONTENDS_VERSION"
-            } > /opt/app/.env
+            } > /opt/app/deploy/staging/.env
 
             # Login to GHCR from server
             echo "$GITHUB_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
 
-            cd /opt/app
-            docker compose -f deploy/staging/docker-compose.yml pull
-            docker compose -f deploy/staging/docker-compose.yml up -d
+            cd /opt/app/deploy/staging
+            docker compose pull
+            docker compose up -d
 
       - name: Verify deployment
         uses: appleboy/ssh-action@v1.2.5
@@ -67,8 +68,9 @@ jobs:
           username: ${{ secrets.DEPLOY_SSH_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           script: |
+            cd /opt/app/deploy/staging
             for i in $(seq 1 10); do
-              curl -sf http://localhost:8000/ && exit 0
+              curl -sf http://localhost:8000/docs && exit 0
               sleep 3
             done
             exit 1
