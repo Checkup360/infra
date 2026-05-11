@@ -1,0 +1,74 @@
+name: Deploy to Staging
+
+on:
+  workflow_dispatch:
+    inputs:
+      backend_version:
+        description: "Backend image tag (e.g., v1.2.3)"
+        required: true
+      frontends_version:
+        description: "Frontends image tag (e.g., v1.2.3)"
+        required: true
+
+permissions:
+  contents: read
+  packages: read
+  actions: write
+
+jobs:
+  test:
+    uses: ./.github/workflows/e2e.yml
+    with:
+      backend_version: ${{ inputs.backend_version }}
+      frontends_version: ${{ inputs.frontends_version }}
+    secrets: inherit
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Deploy to staging
+        uses: appleboy/ssh-action@v1.10.0
+        env:
+          ENV_FILE: ${{ secrets.ENV_FILE }}
+          BACKEND_VERSION: ${{ inputs.backend_version }}
+          FRONTENDS_VERSION: ${{ inputs.frontends_version }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_ACTOR: ${{ github.actor }}
+        with:
+          host: ${{ secrets.DEPLOY_SERVER_HOST }}
+          username: ${{ secrets.DEPLOY_SSH_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          envs: ENV_FILE,BACKEND_VERSION,FRONTENDS_VERSION,GITHUB_TOKEN,GITHUB_ACTOR
+          script: |
+            # Write .env to server
+            {
+              echo "$ENV_FILE"
+              echo "IMAGE_REGISTRY=ghcr.io/checkup360"
+              echo "BACKEND_VERSION=$BACKEND_VERSION"
+              echo "FRONTENDS_VERSION=$FRONTENDS_VERSION"
+            } > /opt/app/.env
+
+            # Login to GHCR from server
+            echo "$GITHUB_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+
+            cd /opt/app
+            docker compose -f deploy/staging/docker-compose.yml pull
+            docker compose -f deploy/staging/docker-compose.yml up -d
+
+      - name: Verify deployment
+        uses: appleboy/ssh-action@v1.10.0
+        with:
+          host: ${{ secrets.DEPLOY_SERVER_HOST }}
+          username: ${{ secrets.DEPLOY_SSH_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            for i in $(seq 1 10); do
+              curl -sf http://localhost:8000/ && exit 0
+              sleep 3
+            done
+            exit 1

@@ -1,0 +1,192 @@
+# nginx.conf.template
+user nginx;
+worker_processes auto;
+error_log /var/log/nginx/error.log warn;
+pid /var/run/nginx.pid;
+
+events {
+    worker_connections 1024;
+}
+
+http {
+    include /etc/nginx/mime.types;
+    default_type application/octet-stream;
+
+    log_format main '$remote_addr - $remote_user [$time_local] "$request" '
+                    '$status $body_bytes_sent "$http_referer" '
+                    '"$http_user_agent" "$http_x_forwarded_for"';
+
+    access_log /var/log/nginx/access.log main;
+
+    sendfile        on;
+    tcp_nopush      on;
+    tcp_nodelay     on;
+    keepalive_timeout 65;
+    types_hash_max_size 2048;
+    server_tokens off;
+
+    gzip on;
+    gzip_vary on;
+    gzip_min_length 1000;
+    gzip_types text/plain text/css text/xml text/javascript
+               application/x-javascript application/xml+rss
+               application/javascript application/json;
+
+    # Upstream definitions
+    upstream backend {
+        server backend:8000;
+    }
+
+    upstream web {
+        server web:80;
+    }
+
+    upstream dashboard {
+        server dashboard:80;
+    }
+
+    upstream backoffice {
+        server backoffice:80;
+    }
+
+    # HTTP — healthz + certbot + redirect
+    server {
+        listen 80;
+        server_name _;
+
+        location /healthz {
+            access_log off;
+            return 200 "healthy\n";
+            add_header Content-Type text/plain;
+        }
+
+        location /.well-known/acme-challenge/ {
+            root /var/www/certbot;
+        }
+
+        location / {
+            return 301 https://$host$request_uri;
+        }
+    }
+
+    # HTTPS - API
+    server {
+        listen 443 ssl http2;
+        server_name ${API_HOST};
+
+        ssl_certificate     /etc/letsencrypt/live/${CERT_DOMAIN}/fullchain.pem;
+        ssl_certificate_key /etc/letsencrypt/live/${CERT_DOMAIN}/privkey.pem;
+        ssl_protocols TLSv1.2 TLSv1.3;
+        ssl_ciphers HIGH:!aNULL:!MD5;
+        ssl_prefer_server_ciphers on;
+
+        add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+        add_header X-Frame-Options "SAMEORIGIN" always;
+        add_header X-Content-Type-Options "nosniff" always;
+
+        location / {
+            proxy_pass http://backend;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_redirect off;
+            proxy_connect_timeout 60s;
+            proxy_read_timeout 60s;
+            proxy_send_timeout 60s;
+        }
+    }
+
+    # HTTPS - Dashboard
+    server {
+        listen 443 ssl http2;
+        server_name ${DASHBOARD_HOST};
+
+        ssl_certificate     /etc/letsencrypt/live/${CERT_DOMAIN}/fullchain.pem;
+        ssl_certificate_key /etc/letsencrypt/live/${CERT_DOMAIN}/privkey.pem;
+        ssl_protocols TLSv1.2 TLSv1.3;
+        ssl_ciphers HIGH:!aNULL:!MD5;
+        ssl_prefer_server_ciphers on;
+
+        add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+        add_header X-Frame-Options "SAMEORIGIN" always;
+        add_header X-Content-Type-Options "nosniff" always;
+
+        location / {
+            proxy_pass http://dashboard;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_redirect off;
+            proxy_connect_timeout 60s;
+            proxy_read_timeout 60s;
+            proxy_send_timeout 60s;
+
+            sub_filter '</head>' '<script>window.__CONFIG__={apiOrigin:"https://${API_HOST}"};</script></head>';
+            sub_filter_once on;
+        }
+    }
+
+    # HTTPS - Backoffice
+    server {
+        listen 443 ssl http2;
+        server_name ${BACKOFFICE_HOST};
+
+        ssl_certificate     /etc/letsencrypt/live/${CERT_DOMAIN}/fullchain.pem;
+        ssl_certificate_key /etc/letsencrypt/live/${CERT_DOMAIN}/privkey.pem;
+        ssl_protocols TLSv1.2 TLSv1.3;
+        ssl_ciphers HIGH:!aNULL:!MD5;
+        ssl_prefer_server_ciphers on;
+
+        add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+        add_header X-Frame-Options "SAMEORIGIN" always;
+        add_header X-Content-Type-Options "nosniff" always;
+
+        location / {
+            proxy_pass http://backoffice;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_redirect off;
+            proxy_connect_timeout 60s;
+            proxy_read_timeout 60s;
+            proxy_send_timeout 60s;
+
+            sub_filter '</head>' '<script>window.__CONFIG__={apiOrigin:"https://${API_HOST}"};</script></head>';
+            sub_filter_once on;
+        }
+    }
+
+    # HTTPS - Web
+    server {
+        listen 443 ssl http2;
+        server_name ${WEB_HOST};
+
+        ssl_certificate     /etc/letsencrypt/live/${CERT_DOMAIN}/fullchain.pem;
+        ssl_certificate_key /etc/letsencrypt/live/${CERT_DOMAIN}/privkey.pem;
+        ssl_protocols TLSv1.2 TLSv1.3;
+        ssl_ciphers HIGH:!aNULL:!MD5;
+        ssl_prefer_server_ciphers on;
+
+        add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+        add_header X-Frame-Options "SAMEORIGIN" always;
+        add_header X-Content-Type-Options "nosniff" always;
+
+        location / {
+            proxy_pass http://web;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_redirect off;
+            proxy_connect_timeout 60s;
+            proxy_read_timeout 60s;
+            proxy_send_timeout 60s;
+
+            sub_filter '</head>' '<script>window.__CONFIG__={apiOrigin:"https://${API_HOST}"};</script></head>';
+            sub_filter_once on;
+        }
+    }
+}

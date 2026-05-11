@@ -11,14 +11,16 @@ on:
         description: "Frontend image tag in GHCR (e.g. v1.2.3)"
         required: true
         default: latest
-      backend_repo:
-        description: "Repo (owner/name) hosting the backend image"
+  workflow_call:
+    inputs:
+      backend_version:
+        description: "Backend image tag in GHCR (e.g. v1.2.3)"
         required: true
-        default: checkup360/backend
-      frontends_owner:
-        description: "GHCR owner of the frontends-* images"
+        type: string
+      frontends_version:
+        description: "Frontend image tag in GHCR (e.g. v1.2.3)"
         required: true
-        default: checkup360
+        type: string
   push:
     branches: [main]
   pull_request:
@@ -93,7 +95,7 @@ jobs:
             echo "PUBLIC_DASHBOARD_ORIGIN=http://localhost:5174"
             echo "PUBLIC_BACKOFFICE_ORIGIN=http://localhost:5175"
             echo "CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:5174,http://localhost:5175"
-            echo "IMAGE_REGISTRY=ghcr.io/${{ inputs.frontends_owner || github.repository_owner }}"
+            echo "IMAGE_REGISTRY=ghcr.io/checkup360"
             echo "BACKEND_VERSION=${{ inputs.backend_version || 'latest' }}"
             echo "FRONTENDS_VERSION=${{ inputs.frontends_version || 'latest' }}"
           } >> .env.e2e
