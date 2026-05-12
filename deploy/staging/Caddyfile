@@ -1,0 +1,41 @@
+{
+    email {$CADDY_EMAIL}
+}
+
+:80 {
+    respond /healthz "healthy" 200
+}
+
+{$API_HOST} {
+    reverse_proxy backend:8000
+}
+
+{$DASHBOARD_HOST} {
+    handle /config.js {
+        header Content-Type "application/javascript"
+        respond `window.__CONFIG__ = { apiOrigin: "https://{$API_HOST}" };`
+    }
+    handle {
+        reverse_proxy dashboard:80
+    }
+}
+
+{$BACKOFFICE_HOST} {
+    handle /config.js {
+        header Content-Type "application/javascript"
+        respond `window.__CONFIG__ = { apiOrigin: "https://{$API_HOST}" };`
+    }
+    handle {
+        reverse_proxy backoffice:80
+    }
+}
+
+{$WEB_HOST} {
+    handle /config.js {
+        header Content-Type "application/javascript"
+        respond `window.__CONFIG__ = { apiOrigin: "https://{$API_HOST}" };`
+    }
+    handle {
+        reverse_proxy web:80
+    }
+}
