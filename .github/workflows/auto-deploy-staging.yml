@@ -82,7 +82,7 @@ jobs:
       - name: Verify deployment
         run: |
           for i in $(seq 1 10); do
-            if curl -sf https://${{ secrets.STAGING_API_HOST }}/docs > /dev/null; then
+            if curl -sf https://${{ secrets.API_HOST }}/docs > /dev/null; then
               echo "Deployment verified successfully"
               exit 0
             fi

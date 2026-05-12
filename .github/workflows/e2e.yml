@@ -52,13 +52,22 @@ jobs:
       DOCKER_BUILDKIT: 1
 
     steps:
+      - name: Determine mode
+        id: mode
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] || [ "${{ github.event_name }}" = "workflow_call" ]; then
+            echo "is_pull=true" >> $GITHUB_OUTPUT
+          else
+            echo "is_pull=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Checkout infra
         uses: actions/checkout@v4
         with:
           path: infra
 
       - name: Checkout backend (build mode)
-        if: github.event_name != 'workflow_dispatch'
+        if: steps.mode.outputs.is_pull == 'false'
         uses: actions/checkout@v4
         with:
           repository: ${{ github.repository_owner }}/backend
@@ -66,7 +75,7 @@ jobs:
           token: ${{ secrets.ORG_PAT }}
 
       - name: Checkout frontends (build mode)
-        if: github.event_name != 'workflow_dispatch'
+        if: steps.mode.outputs.is_pull == 'false'
         uses: actions/checkout@v4
         with:
           repository: ${{ github.repository_owner }}/frontends
@@ -77,7 +86,7 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Log in to GHCR (pull mode)
-        if: github.event_name == 'workflow_dispatch'
+        if: steps.mode.outputs.is_pull == 'true'
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
@@ -109,7 +118,7 @@ jobs:
           } >> .env.e2e
 
       - name: Bring up the stack (pull mode)
-        if: github.event_name == 'workflow_dispatch'
+        if: steps.mode.outputs.is_pull == 'true'
         working-directory: infra
         run: |
           docker compose -f $COMPOSE_FILE_BASE --env-file .env.e2e pull
@@ -117,7 +126,7 @@ jobs:
             db backend web dashboard backoffice
 
       - name: Bring up the stack (build mode)
-        if: github.event_name != 'workflow_dispatch'
+        if: steps.mode.outputs.is_pull == 'false'
         working-directory: infra
         run: |
           docker compose -f $COMPOSE_FILE_BASE -f $COMPOSE_FILE_LOCAL -f $COMPOSE_FILE_CI_CACHE --env-file .env.e2e build
@@ -168,7 +177,7 @@ jobs:
         if: failure()
         working-directory: infra
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          if [ "${{ steps.mode.outputs.is_pull }}" = "true" ]; then
             docker compose -f $COMPOSE_FILE_BASE --env-file .env.e2e logs --no-color
           else
             docker compose -f $COMPOSE_FILE_BASE -f $COMPOSE_FILE_LOCAL -f $COMPOSE_FILE_CI_CACHE --env-file .env.e2e logs --no-color
@@ -178,7 +187,7 @@ jobs:
         if: always()
         working-directory: infra
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          if [ "${{ steps.mode.outputs.is_pull }}" = "true" ]; then
             docker compose -f $COMPOSE_FILE_BASE --env-file .env.e2e down -v
           else
             docker compose -f $COMPOSE_FILE_BASE -f $COMPOSE_FILE_LOCAL -f $COMPOSE_FILE_CI_CACHE --env-file .env.e2e down -v
