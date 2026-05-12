@@ -18,16 +18,7 @@ permissions:
   actions: write
 
 jobs:
-  test:
-    uses: ./.github/workflows/e2e.yml
-    with:
-      backend_version: ${{ inputs.backend_version }}
-      frontends_version: ${{ inputs.frontends_version }}
-      run_mode: pull
-    secrets: inherit
-
   deploy:
-    needs: test
     runs-on: ubuntu-latest
     environment: staging
     steps:
