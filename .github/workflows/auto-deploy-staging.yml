@@ -24,7 +24,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install yq
-        uses: mikefarah/yq@master
+        uses: mikefarah/yq@v4.53.2
 
       - name: Read versions
         id: versions
@@ -35,10 +35,44 @@ jobs:
           echo "frontends=$FRONTENDS" >> $GITHUB_OUTPUT
           echo "Deploying: backend=$BACKEND frontends=$FRONTENDS"
 
-  deploy:
+  deploy-staging:
     needs: read-versions
-    uses: ./.github/workflows/deploy-staging-core.yml
+    uses: ./.github/workflows/deploy-core.yml
     with:
       backend_version: ${{ needs.read-versions.outputs.backend }}
       frontends_version: ${{ needs.read-versions.outputs.frontends }}
+      environment: staging
     secrets: inherit
+
+  create-prod-pr:
+    needs: [read-versions, deploy-staging]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.REPO_DISPATCH_TOKEN }}
+      - name: Update prod versions
+        uses: mikefarah/yq@v4.53.2
+        with:
+          cmd: |
+            yq -i '.backend = "${{ needs.read-versions.outputs.backend }}"' versions/prod.yml
+            yq -i '.frontends = "${{ needs.read-versions.outputs.frontends }}"' versions/prod.yml
+      - name: Create prod PR
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.REPO_DISPATCH_TOKEN }}
+          commit-message: "chore(prod): promote ${{ needs.read-versions.outputs.backend }}"
+          branch: "update/prod-${{ needs.read-versions.outputs.backend }}-${{ needs.read-versions.outputs.frontends }}"
+          delete-branch: true
+          title: "Prod Deploy: backend=${{ needs.read-versions.outputs.backend }} frontends=${{ needs.read-versions.outputs.frontends }}"
+          body: |
+            Staging deployed and verified
+
+            **Backend**: `${{ needs.read-versions.outputs.backend }}`
+            **Frontends**: `${{ needs.read-versions.outputs.frontends }}`
+
+            Once approved and merged, the deployment in production will be triggered automatically.
+          labels: deployment,prod

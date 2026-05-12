@@ -1,0 +1,35 @@
+name: Auto Deploy Prod
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'versions/prod.yml'
+permissions:
+  contents: read
+  packages: read
+  actions: write
+jobs:
+  read-versions:
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.versions.outputs.backend }}
+      frontends: ${{ steps.versions.outputs.frontends }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: mikefarah/yq@v4.53.2
+      - name: Read versions
+        id: versions
+        run: |
+          BACKEND=$(yq '.backend' versions/prod.yml)
+          FRONTENDS=$(yq '.frontends' versions/prod.yml)
+          echo "backend=$BACKEND" >> $GITHUB_OUTPUT
+          echo "frontends=$FRONTENDS" >> $GITHUB_OUTPUT
+
+  deploy:
+    needs: read-versions
+    uses: ./.github/workflows/deploy-core.yml
+    with:
+      environment: prod
+      backend_version: ${{ needs.read-versions.outputs.backend }}
+      frontends_version: ${{ needs.read-versions.outputs.frontends }}
+    secrets: inherit

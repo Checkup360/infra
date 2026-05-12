@@ -1,14 +1,15 @@
-name: Deploy Staging Core
-
+name: Deploy Core
 on:
   workflow_call:
     inputs:
+      environment:
+        description: "Target environment (staging or prod)"
+        required: true
+        type: string
       backend_version:
-        description: "Backend image tag (e.g., v1.2.3)"
         required: true
         type: string
       frontends_version:
-        description: "Frontends image tag (e.g., v1.2.3)"
         required: true
         type: string
 
@@ -20,12 +21,10 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment: staging
+    environment: ${{ inputs.environment }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Deploy to staging
+      - uses: actions/checkout@v4
+      - name: Deploy
         uses: appleboy/ssh-action@v1.2.5
         env:
           ENV_FILE: ${{ secrets.ENV_FILE }}
@@ -44,14 +43,11 @@ jobs:
               echo "IMAGE_REGISTRY=ghcr.io/checkup360"
               echo "BACKEND_VERSION=$BACKEND_VERSION"
               echo "FRONTENDS_VERSION=$FRONTENDS_VERSION"
-            } > /opt/app/deploy/staging/.env
-
+            } > /opt/app/deploy/${{ inputs.environment }}/.env
             echo "$ORG_PAT" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
-
-            cd /opt/app/deploy/staging
+            cd /opt/app/deploy/${{ inputs.environment }}
             docker compose pull || exit 1
             docker compose up -d
-
       - name: Verify deployment
         run: |
           for i in $(seq 1 10); do
@@ -59,8 +55,6 @@ jobs:
               echo "Deployment verified successfully"
               exit 0
             fi
-            echo "Attempt $i/10 - waiting for deployment to be ready..."
             sleep 3
           done
-          echo "Deployment verification failed"
           exit 1
