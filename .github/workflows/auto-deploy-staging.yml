@@ -1,0 +1,92 @@
+name: Auto Deploy Staging
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'versions/staging.yml'
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  read-versions:
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.versions.outputs.backend }}
+      frontends: ${{ steps.versions.outputs.frontends }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install yq
+        uses: mikefarah/yq@master
+
+      - name: Read versions
+        id: versions
+        run: |
+          BACKEND=$(yq '.backend' versions/staging.yml)
+          FRONTENDS=$(yq '.frontends' versions/staging.yml)
+          echo "backend=$BACKEND" >> $GITHUB_OUTPUT
+          echo "frontends=$FRONTENDS" >> $GITHUB_OUTPUT
+          echo "Deploying: backend=$BACKEND frontends=$FRONTENDS"
+
+  test:
+    needs: read-versions
+    uses: ./.github/workflows/e2e.yml
+    with:
+      backend_version: ${{ needs.read-versions.outputs.backend }}
+      frontends_version: ${{ needs.read-versions.outputs.frontends }}
+    secrets: inherit
+
+  deploy:
+    needs: [read-versions, test]
+    runs-on: ubuntu-latest
+    environment: staging
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Deploy to staging
+        uses: appleboy/ssh-action@v1.2.5
+        env:
+          ENV_FILE: ${{ secrets.ENV_FILE }}
+          BACKEND_VERSION: ${{ needs.read-versions.outputs.backend }}
+          FRONTENDS_VERSION: ${{ needs.read-versions.outputs.frontends }}
+          ORG_PAT: ${{ secrets.ORG_PAT }}
+          GITHUB_ACTOR: ${{ github.actor }}
+        with:
+          host: ${{ secrets.DEPLOY_SERVER_HOST }}
+          username: ${{ secrets.DEPLOY_SSH_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          envs: ENV_FILE,BACKEND_VERSION,FRONTENDS_VERSION,ORG_PAT,GITHUB_ACTOR
+          script: |
+            {
+              echo "$ENV_FILE"
+              echo "IMAGE_REGISTRY=ghcr.io/checkup360"
+              echo "BACKEND_VERSION=$BACKEND_VERSION"
+              echo "FRONTENDS_VERSION=$FRONTENDS_VERSION"
+            } > /opt/app/deploy/staging/.env
+
+            echo "$ORG_PAT" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+
+            cd /opt/app/deploy/staging
+            docker compose pull || exit 1
+            docker compose up -d
+
+      - name: Verify deployment
+        run: |
+          for i in $(seq 1 10); do
+            if curl -sf https://${{ secrets.STAGING_API_HOST }}/docs > /dev/null; then
+              echo "Deployment verified successfully"
+              exit 0
+            fi
+            echo "Attempt $i/10 - waiting for deployment to be ready..."
+            sleep 3
+          done
+          echo "Deployment verification failed"
+          exit 1
