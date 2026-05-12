@@ -9,8 +9,7 @@ apt install -y \
   docker.io \
   docker-compose-v2 \
   curl \
-  ufw \
-  certbot
+  ufw 
 
 systemctl enable docker
 systemctl start docker
@@ -24,5 +23,3 @@ mkdir -p /opt/app
 
 apt autoremove -y
 
-# To certify a domain with certbot, run the following command and follow the instructions:
-# certbot certonly --standalone -d your-domain.com
