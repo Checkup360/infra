@@ -59,15 +59,14 @@ jobs:
             docker compose up -d
 
       - name: Verify deployment
-        uses: appleboy/ssh-action@v1.2.5
-        with:
-          host: ${{ secrets.DEPLOY_SERVER_HOST }}
-          username: ${{ secrets.DEPLOY_SSH_USER }}
-          key: ${{ secrets.DEPLOY_SSH_KEY }}
-          script: |
-            cd /opt/app/deploy/staging
-            for i in $(seq 1 10); do
-              curl -sf http://localhost:8000/docs && exit 0
-              sleep 3
-            done
-            exit 1
+        run: |
+          for i in $(seq 1 10); do
+            if curl -sf https://${{ secrets.STAGING_API_HOST }}/docs > /dev/null; then
+              echo "Deployment verified successfully"
+              exit 0
+            fi
+            echo "Attempt $i/10 - waiting for deployment to be ready..."
+            sleep 3
+          done
+          echo "Deployment verification failed"
+          exit 1

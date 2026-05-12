@@ -2,6 +2,13 @@
     email {$CADDY_EMAIL}
 }
 
+(config_js) {
+    handle /config.js {
+        header Content-Type "application/javascript"
+        respond `window.__CONFIG__ = { apiOrigin: "https://{$API_HOST}", webOrigin: "https://{$WEB_HOST}" };`
+    }
+}
+
 :80 {
     respond /healthz "healthy" 200
 }
@@ -11,30 +18,21 @@
 }
 
 {$DASHBOARD_HOST} {
-    handle /config.js {
-        header Content-Type "application/javascript"
-        respond `window.__CONFIG__ = { apiOrigin: "https://{$API_HOST}" };`
-    }
+    import config_js
     handle {
         reverse_proxy dashboard:80
     }
 }
 
 {$BACKOFFICE_HOST} {
-    handle /config.js {
-        header Content-Type "application/javascript"
-        respond `window.__CONFIG__ = { apiOrigin: "https://{$API_HOST}" };`
-    }
+    import config_js
     handle {
         reverse_proxy backoffice:80
     }
 }
 
 {$WEB_HOST} {
-    handle /config.js {
-        header Content-Type "application/javascript"
-        respond `window.__CONFIG__ = { apiOrigin: "https://{$API_HOST}" };`
-    }
+    import config_js
     handle {
         reverse_proxy web:80
     }
