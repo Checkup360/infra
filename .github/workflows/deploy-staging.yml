@@ -16,57 +16,9 @@ permissions:
   actions: write
 
 jobs:
-  test:
-    uses: ./.github/workflows/e2e.yml
+  deploy:
+    uses: ./.github/workflows/deploy-staging-core.yml
     with:
       backend_version: ${{ inputs.backend_version }}
       frontends_version: ${{ inputs.frontends_version }}
     secrets: inherit
-
-  deploy:
-    needs: test
-    runs-on: ubuntu-latest
-    environment: staging
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Deploy to staging
-        uses: appleboy/ssh-action@v1.2.5
-        env:
-          ENV_FILE: ${{ secrets.ENV_FILE }}
-          BACKEND_VERSION: ${{ inputs.backend_version }}
-          FRONTENDS_VERSION: ${{ inputs.frontends_version }}
-          ORG_PAT: ${{ secrets.ORG_PAT }}
-          GITHUB_ACTOR: ${{ github.actor }}
-        with:
-          host: ${{ secrets.DEPLOY_SERVER_HOST }}
-          username: ${{ secrets.DEPLOY_SSH_USER }}
-          key: ${{ secrets.DEPLOY_SSH_KEY }}
-          envs: ENV_FILE,BACKEND_VERSION,FRONTENDS_VERSION,ORG_PAT,GITHUB_ACTOR
-          script: |
-            {
-              echo "$ENV_FILE"
-              echo "IMAGE_REGISTRY=ghcr.io/checkup360"
-              echo "BACKEND_VERSION=$BACKEND_VERSION"
-              echo "FRONTENDS_VERSION=$FRONTENDS_VERSION"
-            } > /opt/app/deploy/staging/.env
-
-            echo "$ORG_PAT" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
-
-            cd /opt/app/deploy/staging
-            docker compose pull || exit 1
-            docker compose up -d
-
-      - name: Verify deployment
-        run: |
-          for i in $(seq 1 10); do
-            if curl -sf https://${{ secrets.API_HOST }}/docs > /dev/null; then
-              echo "Deployment verified successfully"
-              exit 0
-            fi
-            echo "Attempt $i/10 - waiting for deployment to be ready..."
-            sleep 3
-          done
-          echo "Deployment verification failed"
-          exit 1

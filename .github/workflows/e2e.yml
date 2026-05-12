@@ -11,6 +11,10 @@ on:
         description: "Frontend image tag in GHCR (e.g. v1.2.3)"
         required: true
         default: latest
+      run_mode:
+        description: "Mode: pull or build (default pull)"
+        required: false
+        default: pull
   workflow_call:
     inputs:
       backend_version:
@@ -20,6 +24,10 @@ on:
       frontends_version:
         description: "Frontend image tag in GHCR (e.g. v1.2.3)"
         required: true
+        type: string
+      run_mode:
+        description: "Mode: pull or build"
+        required: false
         type: string
   push:
     branches: [main]
@@ -55,6 +63,16 @@ jobs:
       - name: Determine mode
         id: mode
         run: |
+          MODE="${{ inputs.run_mode }}"
+          if [ -n "$MODE" ]; then
+            if [ "$MODE" = "pull" ]; then
+              echo "is_pull=true" >> $GITHUB_OUTPUT
+            else
+              echo "is_pull=false" >> $GITHUB_OUTPUT
+            fi
+            exit 0
+          fi
+
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] || [ "${{ github.event_name }}" = "workflow_call" ]; then
             echo "is_pull=true" >> $GITHUB_OUTPUT
           else
