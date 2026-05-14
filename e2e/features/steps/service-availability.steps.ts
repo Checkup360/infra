@@ -1,17 +1,6 @@
 import { expect } from "@playwright/test"
 import { When, Then } from "./fixtures"
-
-function apiOrigin(): string {
-  return process.env.PUBLIC_API_ORIGIN ?? "http://localhost:8000"
-}
-
-function portalOrigins(): string[] {
-  return [
-    process.env.PUBLIC_WEB_ORIGIN ?? "http://localhost:5173",
-    process.env.PUBLIC_DASHBOARD_ORIGIN ?? "http://localhost:5174",
-    process.env.PUBLIC_BACKOFFICE_ORIGIN ?? "http://localhost:5175",
-  ]
-}
+import { apiOrigin, portalOrigins } from "./e2e-helpers"
 
 When("the operator checks the core API heartbeat", async ({ request }) => {
   const res = await request.get(`${apiOrigin()}/`)
