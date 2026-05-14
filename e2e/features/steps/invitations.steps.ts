@@ -150,6 +150,17 @@ async function createBackofficeOrganizationInvitation(
   storeInviteUrl(world, await createInvitationFromCurrentPage(page))
 }
 
+async function createDashboardOrganizationInvitation(
+  page: Page,
+  world: InvitationWorld,
+  role: OrganizationRole,
+): Promise<void> {
+  await page.goto(`${dashboardOrigin()}/people/invite`)
+  await expect(page.getByRole("heading", { name: "Invite people", level: 1 })).toBeVisible()
+  await fillOrganizationInviteForm(page, world, role)
+  storeInviteUrl(world, await createInvitationFromCurrentPage(page))
+}
+
 async function assertSignedInWithOrganizationRole(
   page: Page,
   world: InvitationWorld,
@@ -175,7 +186,7 @@ Given(
     await page.waitForURL(
       (url) => url.origin === backofficeOrigin() && url.pathname === "/invitations",
     )
-    await expect(page.getByRole("heading", { name: "Invitations" })).toBeVisible()
+    await expect(page.getByRole("heading", { name: "Invitations", level: 1 })).toBeVisible()
   },
 )
 
@@ -244,24 +255,29 @@ Step(
 )
 
 When(
-  "they create a sysadmin invitation from the backoffice",
-  async ({ page, invitationWorld }) => {
-    const { invitedEmail } = requireRecipientState(invitationWorld)
-
-    await selectSysadminInvitationType(page)
-    await page.getByLabel(/email address/i).fill(invitedEmail)
-    storeInviteUrl(invitationWorld, await createInvitationFromCurrentPage(page))
-  },
-)
-
-When(
-  "they create an organization {word} invitation from the backoffice",
-  async ({ page, invitationWorld }, role: string) => {
-    await createBackofficeOrganizationInvitation(
-      page,
-      invitationWorld,
-      toOrganizationRole(role),
-    )
+  /^they create (?:a |an )?(sysadmin|organization)(?: (\w+))? invitation from the (backoffice|dashboard)$/,
+  async ({ page, invitationWorld }, invitationType: string, role: string | undefined, location: string) => {
+    if (invitationType === "sysadmin") {
+      prepareRecipient(invitationWorld, "sysadmin")
+      await selectSysadminInvitationType(page)
+      await page.getByLabel(/email address/i).fill(invitationWorld.invitedEmail!)
+      storeInviteUrl(invitationWorld, await createInvitationFromCurrentPage(page))
+    } else if (invitationType === "organization" && role) {
+      prepareOrganizationRecipient(invitationWorld, role)
+      if (location === "backoffice") {
+        await createBackofficeOrganizationInvitation(
+          page,
+          invitationWorld,
+          toOrganizationRole(role),
+        )
+      } else if (location === "dashboard") {
+        await createDashboardOrganizationInvitation(
+          page,
+          invitationWorld,
+          toOrganizationRole(role),
+        )
+      }
+    }
   },
 )
 
@@ -269,15 +285,7 @@ When(
   "the organization admin opens the dashboard invitations page",
   async ({ page }) => {
     await page.goto(`${dashboardOrigin()}/people/invite`)
-    await expect(page.getByRole("heading", { name: "Invite people" })).toBeVisible()
-  },
-)
-
-When(
-  "they create an organization {word} invitation from the dashboard",
-  async ({ page, invitationWorld }, role: string) => {
-    await fillOrganizationInviteForm(page, invitationWorld, toOrganizationRole(role))
-    storeInviteUrl(invitationWorld, await createInvitationFromCurrentPage(page))
+    await expect(page.getByRole("heading", { name: "Invite people", level: 1 })).toBeVisible()
   },
 )
 
@@ -307,7 +315,7 @@ When(
     const differentEmail = `e2e-mismatch-${uniqueSuffix()}@example.com`
 
     await page.goto(inviteUrl)
-    await expect(page.getByRole("heading", { name: "Create account" })).toBeVisible()
+    await expect(page.getByRole("heading", { name: "Create account", level: 1 })).toBeVisible()
     await page.getByLabel("Email").fill(differentEmail)
     await page.getByLabel("Password").fill(invitedPassword)
     await page.getByRole("button", { name: /create account/i }).click()
@@ -315,27 +323,24 @@ When(
 )
 
 Then(
-  "the invited user is signed in as a sysadmin",
-  async ({ page, invitationWorld }) => {
+  /^the invited user is signed in as (?:a |an )?(sysadmin|organization)(?: (\w+))?$/,
+  async ({ page, invitationWorld }, userType: string, role: string | undefined) => {
     const { invitedEmail } = requireRecipientState(invitationWorld)
-
     const body = await expectCurrentUser(page)
     expect(body.email).toBe(invitedEmail)
-    expect(body.is_sysadmin).toBe(true)
+
+    if (userType === "sysadmin") {
+      expect(body.is_sysadmin).toBe(true)
+    } else if (userType === "organization" && role) {
+      await assertSignedInWithOrganizationRole(
+        page,
+        invitationWorld,
+        toOrganizationRole(role),
+      )
+    }
   },
 )
 
 Then("registration is rejected", async ({ page }) => {
   await expect(page.getByText(/email does not match|invitation/i)).toBeVisible()
 })
-
-Then(
-  "the invited user is signed in as an organization {word}",
-  async ({ page, invitationWorld }, role: string) => {
-    await assertSignedInWithOrganizationRole(
-      page,
-      invitationWorld,
-      toOrganizationRole(role),
-    )
-  },
-)
