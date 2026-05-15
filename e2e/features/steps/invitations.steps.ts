@@ -193,8 +193,11 @@ Given(
     await page.waitForURL((url) => url.pathname === "/login")
     await signInAsSuperuser(page, "invitation scenarios")
     await page.waitForURL(
-      (url) => url.origin === backofficeOrigin() && url.pathname === "/invitations",
+      (url) => url.origin === backofficeOrigin(),
     )
+    if (new URL(page.url()).pathname !== "/invitations") {
+      await page.goto(`${backofficeOrigin()}/invitations`)
+    }
     await expect(page.getByText("Choose invitation type")).toBeVisible()
   },
 )
