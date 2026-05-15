@@ -141,13 +141,22 @@ async function createBackofficeOrganizationInvitation(
   world: InvitationWorld,
   role: OrganizationRole,
 ): Promise<void> {
-  const { organizationSlug } = requireOrganizationState(world)
+  const { organizationId } = requireOrganizationState(world)
+  const { invitedEmail } = requireRecipientState(world)
 
-  await selectOrganizationInvitationType(page)
-  await page.getByPlaceholder("Search organization...").fill(organizationSlug)
-  await page.getByRole("button", { name: new RegExp(organizationSlug) }).click()
-  await fillOrganizationInviteForm(page, world, role)
-  storeInviteUrl(world, await createInvitationFromCurrentPage(page))
+  const res = await page.request.post(`${apiOrigin()}/invites/organization`, {
+    data: {
+      organization_id: organizationId,
+      role,
+      email: invitedEmail,
+      max_uses: 1,
+      expires_in_hours: 24,
+    },
+  })
+  expect(res.ok(), await res.text()).toBeTruthy()
+
+  const body = (await res.json()) as { invite_url: string }
+  storeInviteUrl(world, body.invite_url)
 }
 
 async function createDashboardOrganizationInvitation(
