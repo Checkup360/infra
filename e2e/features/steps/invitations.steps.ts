@@ -186,7 +186,7 @@ Given(
     await page.waitForURL(
       (url) => url.origin === backofficeOrigin() && url.pathname === "/invitations",
     )
-    await expect(page.getByRole("heading", { name: "Invitations", level: 1 })).toBeVisible()
+    await expect(page.getByText("Choose invitation type")).toBeVisible()
   },
 )
 
