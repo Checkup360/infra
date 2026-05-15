@@ -5,7 +5,12 @@
 (config_js) {
     handle /config.js {
         header Content-Type "application/javascript"
-        respond `window.__CONFIG__ = { apiOrigin: "https://{$API_HOST}", webOrigin: "https://{$WEB_HOST}" };`
+        respond `window.__CONFIG__ = { 
+            apiOrigin: "https://{$API_HOST}", 
+            webOrigin: "https://{$WEB_HOST}",
+            dashboardOrigin: "https://{$DASHBOARD_HOST}",
+            backofficeOrigin: "https://{$BACKOFFICE_HOST}"
+        };`
     }
 }
 
