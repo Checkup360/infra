@@ -14,6 +14,7 @@ import {
   expectCurrentUser,
   signInAsSuperuser,
   uniqueSuffix,
+  webOrigin,
 } from "./e2e-helpers"
 
 type OrganizationRole = "admin" | "member"
@@ -53,6 +54,88 @@ function prepareOrganizationRecipient(
   role: string,
 ): void {
   prepareRecipient(world, toOrganizationRole(role))
+}
+
+async function createInvitedUserAsMember({
+  page,
+  invitationWorld: world,
+}: {
+  page: Page
+  invitationWorld: InvitationWorld
+}): Promise<void> {
+  const { organizationId } = requireOrganizationState(world)
+  const suffix = uniqueSuffix()
+  const email = `e2e-setup-org-member-${suffix}@example.com`
+  const password = `SuperSecure123!${suffix}`
+
+  const memberInvite = await page.request.post(`${apiOrigin()}/invites/organization`, {
+    data: {
+      organization_id: organizationId,
+      role: "member",
+      email,
+      max_uses: 1,
+      expires_in_hours: 24,
+    },
+  })
+  expect(memberInvite.ok(), await memberInvite.text()).toBeTruthy()
+  const memberBody = (await memberInvite.json()) as { token: string }
+
+  const adminInvite = await page.request.post(`${apiOrigin()}/invites/organization`, {
+    data: {
+      organization_id: organizationId,
+      role: "admin",
+      email,
+      max_uses: 1,
+      expires_in_hours: 24,
+    },
+  })
+  expect(adminInvite.ok(), await adminInvite.text()).toBeTruthy()
+  const adminBody = (await adminInvite.json()) as { token: string; invite_url: string }
+
+  await page.context().clearCookies()
+  const redeem = await page.request.post(
+    `${apiOrigin()}/invites/${encodeURIComponent(memberBody.token)}/redeem`,
+    {
+      data: { email, password },
+      maxRedirects: 0,
+    },
+  )
+  expect(redeem.status(), await redeem.text()).toBe(303)
+
+  world.invitedEmail = email
+  world.invitedPassword = password
+  world.inviteToken = adminBody.token
+  world.inviteUrl = adminBody.invite_url
+  world.expectedRole = "admin"
+}
+
+async function createAdminInviteForInvitedUser({
+  page,
+  invitationWorld: world,
+}: {
+  page: Page
+  invitationWorld: InvitationWorld
+}): Promise<void> {
+  if (world.inviteToken) return
+
+  const { invitedEmail } = requireRecipientState(world)
+  const { organizationId } = requireOrganizationState(world)
+
+  const res = await page.request.post(`${apiOrigin()}/invites/organization`, {
+    data: {
+      organization_id: organizationId,
+      role: "admin",
+      email: invitedEmail,
+      max_uses: 1,
+      expires_in_hours: 24,
+    },
+  })
+  expect(res.ok(), await res.text()).toBeTruthy()
+
+  const body = (await res.json()) as { token: string; invite_url: string }
+  world.inviteToken = body.token
+  world.inviteUrl = body.invite_url
+  world.expectedRole = "admin"
 }
 
 function requireOrganizationState(
@@ -248,14 +331,15 @@ Given(
     expect(invite.ok(), await invite.text()).toBeTruthy()
     const inviteBody = (await invite.json()) as { token: string }
 
-    const register = await page.request.post(
-      `${apiOrigin()}/invites/${encodeURIComponent(inviteBody.token)}/register`,
+    await page.context().clearCookies()
+    const redeem = await page.request.post(
+      `${apiOrigin()}/invites/${encodeURIComponent(inviteBody.token)}/redeem`,
       {
         data: { email, password },
         maxRedirects: 0,
       },
     )
-    expect(register.status(), await register.text()).toBe(303)
+    expect(redeem.status(), await redeem.text()).toBe(303)
   },
 )
 
@@ -308,29 +392,60 @@ When(
       requireRecipientState(invitationWorld)
     const { inviteToken } = requireInviteState(invitationWorld)
 
-    const register = await page.request.post(
-      `${apiOrigin()}/invites/${encodeURIComponent(inviteToken)}/register`,
+    await page.context().clearCookies()
+
+    const redeem = await page.request.post(
+      `${apiOrigin()}/invites/${encodeURIComponent(inviteToken)}/redeem`,
       {
         data: { email: invitedEmail, password: invitedPassword },
         maxRedirects: 0,
       },
     )
-    expect(register.status(), await register.text()).toBe(303)
+    expect(redeem.status(), await redeem.text()).toBe(303)
   },
 )
 
 When(
   "the invited user tries to register with a different email",
   async ({ page, invitationWorld }) => {
+    await page.context().clearCookies()
     const { invitedPassword } = requireRecipientState(invitationWorld)
     const { inviteUrl } = requireInviteState(invitationWorld)
     const differentEmail = `e2e-mismatch-${uniqueSuffix()}@example.com`
 
     await page.goto(inviteUrl)
-    await expect(page.getByRole("heading", { name: "Create account", level: 1 })).toBeVisible()
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible()
     await page.getByLabel("Email").fill(differentEmail)
     await page.getByLabel("Password").fill(invitedPassword)
-    await page.getByRole("button", { name: /create account/i }).click()
+    await page.getByText("Continue", { exact: true }).click()
+  },
+)
+
+Given("there is a signed-in organization member for the invitation", createInvitedUserAsMember)
+
+Given(
+  "they receive an admin invitation for the organization",
+  createAdminInviteForInvitedUser,
+)
+
+When(
+  "an admin invitation is created for the invited user",
+  createAdminInviteForInvitedUser,
+)
+
+When(
+  "the invited user accepts the invitation",
+  async ({ page, invitationWorld }) => {
+    const { inviteUrl } = requireInviteState(invitationWorld)
+
+    await page.goto(inviteUrl)
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible()
+    await page.getByRole("button", { name: /accept invitation/i }).click()
+
+    await page.waitForURL(
+      (url) => url.origin === dashboardOrigin() || url.origin === webOrigin(),
+      { timeout: 10000 },
+    )
   },
 )
 
@@ -354,5 +469,5 @@ Then(
 )
 
 Then("registration is rejected", async ({ page }) => {
-  await expect(page.getByText(/email does not match|invitation/i)).toBeVisible()
+  await expect(page.getByText(/email does not match the invitation/i)).toBeVisible()
 })

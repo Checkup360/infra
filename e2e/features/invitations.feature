@@ -38,3 +38,9 @@ Feature: Invitations
     When they create an organization member invitation from the dashboard
     And the invited user registers with the invitation
     Then the invited user is signed in as an organization member
+
+  Scenario: Member promoted to admin by accepting an invitation
+    Given there is a signed-in organization member for the invitation
+    And they receive an admin invitation for the organization
+    When the invited user accepts the invitation
+    Then the invited user is signed in as an organization admin
