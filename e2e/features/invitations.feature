@@ -44,3 +44,10 @@ Feature: Invitations
     And they receive an admin invitation for the organization
     When the invited user accepts the invitation
     Then the invited user is signed in as an organization admin
+    And the invited user has both member and admin roles
+
+  Scenario: Admin accepts member invitation for the same organization and has both roles
+    Given there is a signed-in organization admin for invitations
+    And they receive a member invitation for the organization
+    When the invited user accepts the invitation
+    Then the invited user has both member and admin roles

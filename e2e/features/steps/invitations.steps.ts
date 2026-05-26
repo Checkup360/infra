@@ -138,6 +138,35 @@ async function createAdminInviteForInvitedUser({
   world.expectedRole = "admin"
 }
 
+async function createMemberInviteForInvitedUser({
+  page,
+  invitationWorld: world,
+}: {
+  page: Page
+  invitationWorld: InvitationWorld
+}): Promise<void> {
+  if (world.inviteToken) return
+
+  const { invitedEmail } = requireRecipientState(world)
+  const { organizationId } = requireOrganizationState(world)
+
+  const res = await page.request.post(`${apiOrigin()}/invites/organization`, {
+    data: {
+      organization_id: organizationId,
+      role: "member",
+      email: invitedEmail,
+      max_uses: 1,
+      expires_in_hours: 24,
+    },
+  })
+  expect(res.ok(), await res.text()).toBeTruthy()
+
+  const body = (await res.json()) as { token: string; invite_url: string }
+  world.inviteToken = body.token
+  world.inviteUrl = body.invite_url
+  world.expectedRole = "member"
+}
+
 function requireOrganizationState(
   world: InvitationWorld,
 ): RequiredOrganizationState {
@@ -340,6 +369,11 @@ Given(
       },
     )
     expect(redeem.status(), await redeem.text()).toBe(303)
+
+    invitationWorld.invitedEmail = email
+    invitationWorld.invitedPassword = password
+    invitationWorld.inviteToken = undefined
+    invitationWorld.inviteUrl = undefined
   },
 )
 
@@ -428,6 +462,11 @@ Given(
   createAdminInviteForInvitedUser,
 )
 
+Given(
+  "they receive a member invitation for the organization",
+  createMemberInviteForInvitedUser,
+)
+
 When(
   "an admin invitation is created for the invited user",
   createAdminInviteForInvitedUser,
@@ -470,4 +509,19 @@ Then(
 
 Then("registration is rejected", async ({ page }) => {
   await expect(page.getByText(/email does not match the invitation/i)).toBeVisible()
+})
+
+Then("the invited user has both member and admin roles", async ({ page, invitationWorld }) => {
+  const { invitedEmail } = requireRecipientState(invitationWorld)
+  const { organizationId } = requireOrganizationState(invitationWorld)
+
+  const body = await expectCurrentUser(page)
+  expect(body.email).toBe(invitedEmail)
+  expect(body.is_sysadmin).toBe(false)
+  expect(body.memberships).toContainEqual(
+    expect.objectContaining({
+      organization_id: organizationId,
+      roles: expect.arrayContaining(["member", "admin"]),
+    }),
+  )
 })
