@@ -265,7 +265,7 @@ async function assertSignedInWithOrganizationRole(
   expect(body.email).toBe(invitedEmail)
   expect(body.is_sysadmin).toBe(false)
   expect(body.memberships).toContainEqual(
-    expect.objectContaining({ organization_id: organizationId, role }),
+    expect.objectContaining({ organization_id: organizationId, roles: expect.arrayContaining([role]) }),
   )
 }
 
