@@ -293,9 +293,10 @@ async function assertSignedInWithOrganizationRole(
   const body = await expectCurrentUser(page)
   expect(body.email).toBe(invitedEmail)
   expect(body.is_sysadmin).toBe(false)
-  expect(body.memberships).toContainEqual(
-    expect.objectContaining({ organization_id: organizationId, roles: expect.arrayContaining([role]) }),
-  )
+  expect(body.membership).toMatchObject({
+    organization_id: organizationId,
+    roles: expect.arrayContaining([role]),
+  })
 }
 
 Given(
@@ -518,10 +519,8 @@ Then("the invited user has both member and admin roles", async ({ page, invitati
   const body = await expectCurrentUser(page)
   expect(body.email).toBe(invitedEmail)
   expect(body.is_sysadmin).toBe(false)
-  expect(body.memberships).toContainEqual(
-    expect.objectContaining({
-      organization_id: organizationId,
-      roles: expect.arrayContaining(["member", "admin"]),
-    }),
-  )
+  expect(body.membership).toMatchObject({
+    organization_id: organizationId,
+    roles: expect.arrayContaining(["member", "admin"]),
+  })
 })
