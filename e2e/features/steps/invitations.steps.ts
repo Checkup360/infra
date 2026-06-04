@@ -213,7 +213,9 @@ function tokenFromInviteUrl(inviteUrl: string): string {
 
 async function createInvitationFromCurrentPage(page: Page): Promise<string> {
   await page.getByRole("button", { name: /generate link/i }).click()
-  await expect(page.getByText("Invitation created")).toBeVisible()
+  await expect(
+    page.getByRole("heading", { name: "Invitation created" }),
+  ).toBeVisible()
   const inviteUrl = await page.locator("input[readonly]").first().inputValue()
   expect(inviteUrl).toMatch(/\/invite\/[^/]+$/)
   return inviteUrl
@@ -276,8 +278,11 @@ async function createDashboardOrganizationInvitation(
   world: InvitationWorld,
   role: OrganizationRole,
 ): Promise<void> {
-  await page.goto(`${dashboardOrigin()}/people/invite`)
-  await expect(page.getByRole("heading", { name: "Invite people", level: 1 })).toBeVisible()
+  await page.goto(`${dashboardOrigin()}/invitations`)
+  await page.getByRole("button", { name: /create invitation/i }).click()
+  await expect(
+    page.getByRole("heading", { name: "Create invite" }),
+  ).toBeVisible()
   await fillOrganizationInviteForm(page, world, role)
   storeInviteUrl(world, await createInvitationFromCurrentPage(page))
 }
@@ -311,6 +316,7 @@ Given(
     if (new URL(page.url()).pathname !== "/invitations") {
       await page.goto(`${backofficeOrigin()}/invitations`)
     }
+    await page.getByRole("button", { name: /create invitation/i }).click()
     await expect(page.getByText("Choose invitation type")).toBeVisible()
   },
 )
@@ -415,8 +421,8 @@ When(
 When(
   "the organization admin opens the dashboard invitations page",
   async ({ page }) => {
-    await page.goto(`${dashboardOrigin()}/people/invite`)
-    await expect(page.getByRole("heading", { name: "Invite people", level: 1 })).toBeVisible()
+    await page.goto(`${dashboardOrigin()}/invitations`)
+    await expect(page.getByRole("heading", { name: "Invites" })).toBeVisible()
   },
 )
 
@@ -480,8 +486,18 @@ When(
 
     await page.goto(inviteUrl)
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible()
-    await page.getByRole("button", { name: /accept invitation/i }).click()
+    const redeemResponsePromise = page.waitForResponse((response) => {
+      const path = new URL(response.url()).pathname
+      return (
+        response.request().method() === "POST" &&
+        path.startsWith("/invites/") &&
+        path.endsWith("/redeem")
+      )
+    })
 
+    await page.getByRole("button", { name: /accept invitation/i }).click()
+    const redeemResponse = await redeemResponsePromise
+    expect(redeemResponse.ok()).toBeTruthy()
     await page.waitForURL(
       (url) => url.origin === dashboardOrigin() || url.origin === webOrigin(),
       { timeout: 10000 },
