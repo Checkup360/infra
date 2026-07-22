@@ -457,7 +457,7 @@ When(
     await page.goto(inviteUrl)
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible()
     await page.getByLabel("Email").fill(differentEmail)
-    await page.getByLabel("Password").fill(invitedPassword)
+    await page.getByLabel("Password", { exact: true }).fill(invitedPassword)
     await page.getByText("Continue", { exact: true }).click()
   },
 )
