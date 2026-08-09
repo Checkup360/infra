@@ -1,8 +1,9 @@
-import { expect, request } from "@playwright/test"
+import { expect } from "@playwright/test"
 import { Given, When, Then } from "./fixtures"
 import {
   apiOrigin,
-  apiSignInAsSuperuser,
+  createAndRedeemOrgInvite,
+  createTestOrganization,
   dashboardOrigin,
   uniqueSuffix,
 } from "./e2e-helpers"
@@ -10,38 +11,25 @@ import {
 Given(
   "there is an organization with a signed-in admin and registered members",
   async ({ page, invitationWorld }) => {
-    // 1. Superuser creates organization
-    await apiSignInAsSuperuser(page, "setup employees scenario")
+    // 1. Create Organization
+    const org = await createTestOrganization(page, "Emp Org")
+    invitationWorld.organizationId = org.id
+
     const suffix = uniqueSuffix()
-    const orgName = `E2E Emp Org ${suffix}`
-    const orgSlug = `e2e-emp-org-${suffix}`
-
-    const orgRes = await page.request.post(`${apiOrigin()}/organizations/`, {
-      data: { name: orgName, slug: orgSlug },
-    })
-    expect(orgRes.ok(), await orgRes.text()).toBeTruthy()
-    const orgBody = (await orgRes.json()) as { id: string; name: string }
-    invitationWorld.organizationId = orgBody.id
-
-    // 2. Create Admin user invite & redeem
     const adminEmail = `e2e-emp-admin-${suffix}@example.com`
     const adminPass = `AdminSecure123!${suffix}`
-    const adminInviteRes = await page.request.post(`${apiOrigin()}/invites/organization`, {
-      data: { organization_id: orgBody.id, role: "admin", email: adminEmail, max_uses: 1, expires_in_hours: 24 },
-    })
-    expect(adminInviteRes.ok(), await adminInviteRes.text()).toBeTruthy()
-    const adminInvite = (await adminInviteRes.json()) as { token: string }
 
-    await page.context().clearCookies()
-    const redeemAdmin = await page.request.post(`${apiOrigin()}/invites/${encodeURIComponent(adminInvite.token)}/redeem`, {
-      data: { email: adminEmail, password: adminPass },
-      maxRedirects: 0,
+    // 2. Create and redeem Admin user
+    await createAndRedeemOrgInvite(page, {
+      organizationId: org.id,
+      role: "admin",
+      email: adminEmail,
+      password: adminPass,
     })
-    expect(redeemAdmin.status()).toBe(303)
 
-    // 3. Now signed in as Org Admin, create Department
+    // 3. Create Department
     const deptName = `Ingeniería ${suffix}`
-    const deptRes = await page.request.post(`${apiOrigin()}/organizations/${orgBody.id}/departments`, {
+    const deptRes = await page.request.post(`${apiOrigin()}/organizations/${org.id}/departments`, {
       data: { name: deptName },
     })
     expect(deptRes.ok(), await deptRes.text()).toBeTruthy()
@@ -49,40 +37,23 @@ Given(
     invitationWorld.organizationSlug = deptBody.id
     invitationWorld.memberFirstName = deptName
 
-    // 4. Create Member 1 (as Org Admin)
+    // 4. Create & redeem Member 1 (in isolated session)
     const empEmail1 = `emp1-${suffix}@example.com`
     const empPass1 = `Emp1Secure123!${suffix}`
-    const invite1Res = await page.request.post(`${apiOrigin()}/invites/organization`, {
-      data: { organization_id: orgBody.id, role: "member", email: empEmail1, max_uses: 1, expires_in_hours: 24 },
-    })
-    expect(invite1Res.ok(), await invite1Res.text()).toBeTruthy()
-    const invite1 = (await invite1Res.json()) as { token: string }
+    await createAndRedeemOrgInvite(
+      page,
+      { organizationId: org.id, role: "member", email: empEmail1, password: empPass1 },
+      true,
+    )
 
-    // Redeem Member 1 in an isolated request context to keep Admin session on page context
-    const reqContext1 = await request.newContext()
-    const redeem1 = await reqContext1.post(`${apiOrigin()}/invites/${encodeURIComponent(invite1.token)}/redeem`, {
-      data: { email: empEmail1, password: empPass1 },
-      maxRedirects: 0,
-    })
-    expect(redeem1.status()).toBe(303)
-    await reqContext1.dispose()
-
-    // 5. Create Member 2 (as Org Admin)
+    // 5. Create & redeem Member 2 (in isolated session)
     const empEmail2 = `emp2-${suffix}@example.com`
     const empPass2 = `Emp2Secure123!${suffix}`
-    const invite2Res = await page.request.post(`${apiOrigin()}/invites/organization`, {
-      data: { organization_id: orgBody.id, role: "member", email: empEmail2, max_uses: 1, expires_in_hours: 24 },
-    })
-    expect(invite2Res.ok(), await invite2Res.text()).toBeTruthy()
-    const invite2 = (await invite2Res.json()) as { token: string }
-
-    const reqContext2 = await request.newContext()
-    const redeem2 = await reqContext2.post(`${apiOrigin()}/invites/${encodeURIComponent(invite2.token)}/redeem`, {
-      data: { email: empEmail2, password: empPass2 },
-      maxRedirects: 0,
-    })
-    expect(redeem2.status()).toBe(303)
-    await reqContext2.dispose()
+    await createAndRedeemOrgInvite(
+      page,
+      { organizationId: org.id, role: "member", email: empEmail2, password: empPass2 },
+      true,
+    )
 
     invitationWorld.invitedEmail = empEmail1
     invitationWorld.memberLastName = empEmail2

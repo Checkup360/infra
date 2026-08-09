@@ -11,6 +11,8 @@ import {
   apiOrigin,
   apiSignInAsSuperuser,
   backofficeOrigin,
+  createAndRedeemOrgInvite,
+  createTestOrganization,
   dashboardOrigin,
   expectCurrentUser,
   signInAsSuperuser,
@@ -325,19 +327,10 @@ Given(
 Given(
   "there is an organization for invitations",
   async ({ page, invitationWorld }) => {
-    const suffix = uniqueSuffix()
-    const name = `E2E Invitations ${suffix}`
-    const slug = `e2e-invitations-${suffix}`
-
-    const res = await page.request.post(`${apiOrigin()}/organizations/`, {
-      data: { name, slug },
-    })
-    expect(res.ok(), await res.text()).toBeTruthy()
-
-    const body = (await res.json()) as { id: string; name: string; slug: string }
-    invitationWorld.organizationId = body.id
-    invitationWorld.organizationName = body.name
-    invitationWorld.organizationSlug = body.slug
+    const org = await createTestOrganization(page, "Invitations")
+    invitationWorld.organizationId = org.id
+    invitationWorld.organizationName = org.name
+    invitationWorld.organizationSlug = org.slug
   },
 )
 
@@ -356,27 +349,12 @@ Given(
     const email = `e2e-setup-org-admin-${suffix}@example.com`
     const password = `SuperSecure123!${suffix}`
 
-    const invite = await page.request.post(`${apiOrigin()}/invites/organization`, {
-      data: {
-        organization_id: organizationId,
-        role: "admin",
-        email,
-        max_uses: 1,
-        expires_in_hours: 24,
-      },
+    await createAndRedeemOrgInvite(page, {
+      organizationId,
+      role: "admin",
+      email,
+      password,
     })
-    expect(invite.ok(), await invite.text()).toBeTruthy()
-    const inviteBody = (await invite.json()) as { token: string }
-
-    await page.context().clearCookies()
-    const redeem = await page.request.post(
-      `${apiOrigin()}/invites/${encodeURIComponent(inviteBody.token)}/redeem`,
-      {
-        data: { email, password },
-        maxRedirects: 0,
-      },
-    )
-    expect(redeem.status(), await redeem.text()).toBe(303)
 
     invitationWorld.invitedEmail = email
     invitationWorld.invitedPassword = password

@@ -1,4 +1,4 @@
-import { expect, type Page } from "@playwright/test"
+import { expect, request, type Page } from "@playwright/test"
 
 export function webOrigin(): string {
   return process.env.PUBLIC_WEB_ORIGIN ?? "http://localhost:5173"
@@ -71,4 +71,73 @@ export async function expectCurrentUser(page: Page): Promise<any> {
   const me = await page.request.get(`${apiOrigin()}/auth/me`)
   expect(me.ok(), await me.text()).toBeTruthy()
   return await me.json()
+}
+
+export async function createTestOrganization(
+  page: Page,
+  prefix = "E2E Org",
+): Promise<{ id: string; name: string; slug: string }> {
+  await apiSignInAsSuperuser(page, "create test org")
+  const suffix = uniqueSuffix()
+  const name = `${prefix} ${suffix}`
+  const slug = `e2e-${prefix.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${suffix}`
+
+  const res = await page.request.post(`${apiOrigin()}/organizations/`, {
+    data: { name, slug },
+  })
+  expect(res.ok(), await res.text()).toBeTruthy()
+  return (await res.json()) as { id: string; name: string; slug: string }
+}
+
+export async function createAndRedeemOrgInvite(
+  page: Page,
+  {
+    organizationId,
+    role,
+    email,
+    password,
+  }: {
+    organizationId: string
+    role: "admin" | "member"
+    email: string
+    password: string
+  },
+  isolatedSession = false,
+): Promise<{ token: string; inviteUrl: string }> {
+  const inviteRes = await page.request.post(`${apiOrigin()}/invites/organization`, {
+    data: {
+      organization_id: organizationId,
+      role,
+      email,
+      max_uses: 1,
+      expires_in_hours: 24,
+    },
+  })
+  expect(inviteRes.ok(), await inviteRes.text()).toBeTruthy()
+  const body = (await inviteRes.json()) as { token: string; invite_url: string }
+
+  if (isolatedSession) {
+    const isolatedCtx = await request.newContext()
+    const redeemRes = await isolatedCtx.post(
+      `${apiOrigin()}/invites/${encodeURIComponent(body.token)}/redeem`,
+      {
+        data: { email, password },
+        maxRedirects: 0,
+      },
+    )
+    expect(redeemRes.status(), await redeemRes.text()).toBe(303)
+    await isolatedCtx.dispose()
+  } else {
+    await page.context().clearCookies()
+    const redeemRes = await page.request.post(
+      `${apiOrigin()}/invites/${encodeURIComponent(body.token)}/redeem`,
+      {
+        data: { email, password },
+        maxRedirects: 0,
+      },
+    )
+    expect(redeemRes.status(), await redeemRes.text()).toBe(303)
+  }
+
+  return { token: body.token, inviteUrl: body.invite_url }
 }

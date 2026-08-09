@@ -2,7 +2,8 @@ import { expect } from "@playwright/test"
 import { Given, When, Then } from "./fixtures"
 import {
   apiOrigin,
-  apiSignInAsSuperuser,
+  createAndRedeemOrgInvite,
+  createTestOrganization,
   dashboardOrigin,
   uniqueSuffix,
 } from "./e2e-helpers"
@@ -10,45 +11,21 @@ import {
 Given(
   "there is an organization with a signed-in organization admin for departments",
   async ({ page, invitationWorld }) => {
-    await apiSignInAsSuperuser(page, "setup org admin scenario")
+    const org = await createTestOrganization(page, "Dept Org")
+    invitationWorld.organizationId = org.id
+    invitationWorld.organizationName = org.name
+    invitationWorld.organizationSlug = org.slug
+
     const suffix = uniqueSuffix()
-    const orgName = `E2E Dept Org ${suffix}`
-    const orgSlug = `e2e-dept-org-${suffix}`
-
-    const orgRes = await page.request.post(`${apiOrigin()}/organizations/`, {
-      data: { name: orgName, slug: orgSlug },
-    })
-    expect(orgRes.ok(), await orgRes.text()).toBeTruthy()
-    const orgBody = (await orgRes.json()) as { id: string; name: string; slug: string }
-
-    invitationWorld.organizationId = orgBody.id
-    invitationWorld.organizationName = orgBody.name
-    invitationWorld.organizationSlug = orgBody.slug
-
     const adminEmail = `e2e-dept-admin-${suffix}@example.com`
     const adminPassword = `SuperSecure123!${suffix}`
 
-    const inviteRes = await page.request.post(`${apiOrigin()}/invites/organization`, {
-      data: {
-        organization_id: orgBody.id,
-        role: "admin",
-        email: adminEmail,
-        max_uses: 1,
-        expires_in_hours: 24,
-      },
+    await createAndRedeemOrgInvite(page, {
+      organizationId: org.id,
+      role: "admin",
+      email: adminEmail,
+      password: adminPassword,
     })
-    expect(inviteRes.ok(), await inviteRes.text()).toBeTruthy()
-    const inviteBody = (await inviteRes.json()) as { token: string }
-
-    await page.context().clearCookies()
-    const redeemRes = await page.request.post(
-      `${apiOrigin()}/invites/${encodeURIComponent(inviteBody.token)}/redeem`,
-      {
-        data: { email: adminEmail, password: adminPassword },
-        maxRedirects: 0,
-      },
-    )
-    expect(redeemRes.status(), await redeemRes.text()).toBe(303)
 
     invitationWorld.invitedEmail = adminEmail
     invitationWorld.invitedPassword = adminPassword
@@ -86,15 +63,8 @@ Given(
     const deptName1 = `${name1} ${suffix}`
     const deptName2 = `${name2} ${suffix}`
 
-    const res1 = await page.request.post(`${apiOrigin()}/organizations/${orgId}/departments`, {
-      data: { name: deptName1 },
-    })
-    expect(res1.ok(), await res1.text()).toBeTruthy()
-
-    const res2 = await page.request.post(`${apiOrigin()}/organizations/${orgId}/departments`, {
-      data: { name: deptName2 },
-    })
-    expect(res2.ok(), await res2.text()).toBeTruthy()
+    await page.request.post(`${apiOrigin()}/organizations/${orgId}/departments`, { data: { name: deptName1 } })
+    await page.request.post(`${apiOrigin()}/organizations/${orgId}/departments`, { data: { name: deptName2 } })
 
     invitationWorld.memberFirstName = deptName1
     invitationWorld.memberLastName = deptName2

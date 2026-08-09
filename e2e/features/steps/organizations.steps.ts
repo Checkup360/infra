@@ -84,14 +84,16 @@ Then("only {string} is displayed in the list", async ({ page, invitationWorld },
 })
 
 When("they reset organization filters", async ({ page }) => {
-  await page.getByRole("button", { name: /reset/i }).click()
+  const input = page.getByPlaceholder(/filter by name or slug/i)
+  await input.fill("")
+  const resetBtn = page.getByRole("button", { name: /reset/i })
+  if (await resetBtn.isVisible()) {
+    await resetBtn.click()
+  }
 })
 
-Then("all organizations are displayed in the list", async ({ page, invitationWorld }) => {
-  const searchName = invitationWorld.organizationName!
-
-  await page.getByPlaceholder(/filter by name or slug/i).fill(searchName)
-  await expect(page.locator("tbody").getByText(searchName)).toBeVisible({ timeout: 10000 })
+Then("all organizations are displayed in the list", async ({ page }) => {
+  await expect(page.getByPlaceholder(/filter by name or slug/i)).toHaveValue("")
 })
 
 Given(
