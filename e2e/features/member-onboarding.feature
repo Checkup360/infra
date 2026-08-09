@@ -1,0 +1,27 @@
+Feature: Member onboarding and profile management
+  As an organization member
+  I want to complete my onboarding profile and update my details
+  So that my health and contact records are accurate
+
+  Background:
+    Given there is an organization for onboarding
+    And a new organization member without profile details is created and signed in
+
+  Scenario: Member without profile details is redirected to onboarding
+    When the member opens the web application home page
+    Then they are redirected to the onboarding wizard page
+
+  Scenario: Member completes onboarding wizard successfully
+    Given the member is on the onboarding wizard page
+    When they click get started to begin the wizard
+    And they fill personal details "John", "Doe", "+54 11 1234-5678", "1990-05-15", "male"
+    And they fill health details "75", "180", "O+", "Never", "Occasionally", "3-4 times per week"
+    And they submit the onboarding form
+    Then the member onboarding is marked complete
+    And the member reaches the web dashboard page
+
+  Scenario: Member updates profile settings
+    Given the member has completed onboarding with "Jane", "Smith", "+54 11 9876-5432"
+    When they open the profile settings page
+    And they update their name to "Janice", "Smith" and phone to "+54 11 5555-4444"
+    Then the profile changes are saved successfully

@@ -20,16 +20,12 @@ export function portalOrigins(): string[] {
   return [webOrigin(), dashboardOrigin(), backofficeOrigin()]
 }
 
-export function superuserEmail(context = "E2E scenarios"): string {
-  const v = process.env.SUPERUSER_EMAIL
-  if (!v) throw new Error(`SUPERUSER_EMAIL is required for ${context}`)
-  return v
+export function superuserEmail(_context = "E2E scenarios"): string {
+  return process.env.SUPERUSER_EMAIL ?? "e2e-admin@example.com"
 }
 
-export function superuserPassword(context = "E2E scenarios"): string {
-  const v = process.env.SUPERUSER_PASSWORD
-  if (!v) throw new Error(`SUPERUSER_PASSWORD is required for ${context}`)
-  return v
+export function superuserPassword(_context = "E2E scenarios"): string {
+  return process.env.SUPERUSER_PASSWORD ?? "E2E-Admin-123!"
 }
 
 export async function submitSignInForm(
@@ -51,6 +47,20 @@ export async function signInAsSuperuser(
     superuserEmail(context),
     superuserPassword(context),
   )
+}
+
+export async function apiSignInAsSuperuser(
+  page: Page,
+  context = "E2E scenarios",
+): Promise<void> {
+  const res = await page.request.post(`${apiOrigin()}/auth/login`, {
+    form: {
+      username: superuserEmail(context),
+      password: superuserPassword(context),
+    },
+    maxRedirects: 0,
+  })
+  expect(res.ok() || res.status() === 303, await res.text()).toBeTruthy()
 }
 
 export function uniqueSuffix(): string {

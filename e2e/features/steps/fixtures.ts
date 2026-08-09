@@ -11,6 +11,9 @@ export type InvitationWorld = {
   organizationName?: string
   organizationSlug?: string
   expectedRole?: InvitationRole
+  memberFirstName?: string
+  memberLastName?: string
+  memberPhone?: string
 }
 
 export const test = base.extend<{ invitationWorld: InvitationWorld }>({

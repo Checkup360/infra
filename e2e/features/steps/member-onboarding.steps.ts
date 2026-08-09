@@ -1,0 +1,215 @@
+import { expect } from "@playwright/test"
+import { Given, When, Then } from "./fixtures"
+import {
+  apiOrigin,
+  apiSignInAsSuperuser,
+  expectCurrentUser,
+  uniqueSuffix,
+  webOrigin,
+} from "./e2e-helpers"
+
+Given("there is an organization for onboarding", async ({ page, invitationWorld }) => {
+  await apiSignInAsSuperuser(page, "onboarding scenario setup")
+  const suffix = uniqueSuffix()
+  const name = `E2E Org Onboarding ${suffix}`
+  const slug = `e2e-org-onboarding-${suffix}`
+
+  const res = await page.request.post(`${apiOrigin()}/organizations/`, {
+    data: { name, slug },
+  })
+  expect(res.ok(), await res.text()).toBeTruthy()
+
+  const body = (await res.json()) as { id: string; name: string; slug: string }
+  invitationWorld.organizationId = body.id
+  invitationWorld.organizationName = body.name
+  invitationWorld.organizationSlug = body.slug
+})
+
+Given(
+  "a new organization member without profile details is created and signed in",
+  async ({ page, invitationWorld }) => {
+    const orgId = invitationWorld.organizationId
+    if (!orgId) throw new Error("Missing organizationId in test world")
+
+    const suffix = uniqueSuffix()
+    const email = `e2e-onboard-user-${suffix}@example.com`
+    const password = `SuperSecure123!${suffix}`
+
+    const inviteRes = await page.request.post(`${apiOrigin()}/invites/organization`, {
+      data: {
+        organization_id: orgId,
+        role: "member",
+        email,
+        max_uses: 1,
+        expires_in_hours: 24,
+      },
+    })
+    expect(inviteRes.ok(), await inviteRes.text()).toBeTruthy()
+    const inviteBody = (await inviteRes.json()) as { token: string }
+
+    await page.context().clearCookies()
+    const redeemRes = await page.request.post(
+      `${apiOrigin()}/invites/${encodeURIComponent(inviteBody.token)}/redeem`,
+      {
+        data: { email, password },
+        maxRedirects: 0,
+      },
+    )
+    expect(redeemRes.status(), await redeemRes.text()).toBe(303)
+
+    invitationWorld.invitedEmail = email
+    invitationWorld.invitedPassword = password
+
+    const currentUser = await expectCurrentUser(page)
+    expect(currentUser.requires_onboarding).toBe(true)
+  },
+)
+
+When("the member opens the web application home page", async ({ page }) => {
+  await page.goto(`${webOrigin()}/`)
+})
+
+Then("they are redirected to the onboarding wizard page", async ({ page }) => {
+  await page.waitForURL((url) => url.pathname === "/onboarding")
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible()
+})
+
+Given("the member is on the onboarding wizard page", async ({ page }) => {
+  await page.goto(`${webOrigin()}/onboarding`)
+  await page.waitForURL((url) => url.pathname === "/onboarding")
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible()
+})
+
+When("they click get started to begin the wizard", async ({ page }) => {
+  const nextBtn = page.getByRole("button", { name: /start onboarding|next|get started|continue/i }).first()
+  await expect(nextBtn).toBeVisible()
+  await nextBtn.click()
+})
+
+When(
+  "they fill personal details {string}, {string}, {string}, {string}, {string}",
+  async (
+    { page, invitationWorld },
+    firstName: string,
+    lastName: string,
+    phone: string,
+    dob: string,
+    gender: string,
+  ) => {
+    invitationWorld.memberFirstName = firstName
+    invitationWorld.memberLastName = lastName
+    invitationWorld.memberPhone = phone
+
+    await page.getByLabel(/first name/i).fill(firstName)
+    await page.getByLabel(/last name/i).fill(lastName)
+    await page.getByLabel(/phone number/i).fill(phone)
+    await page.locator("#date-of-birth").fill(dob)
+
+    await page.getByLabel(/gender/i).click()
+    await page.getByRole("option", { name: new RegExp(`^${gender}$`, "i") }).click()
+
+    const nextBtn = page.getByRole("button", { name: /next step|next|continue/i }).first()
+    await nextBtn.click()
+  },
+)
+
+When(
+  "they fill health details {string}, {string}, {string}, {string}, {string}, {string}",
+  async (
+    { page },
+    weight: string,
+    height: string,
+    bloodType: string,
+    smoking: string,
+    alcohol: string,
+    exercise: string,
+  ) => {
+    await page.getByLabel(/weight/i).fill(weight)
+    await page.getByLabel(/height/i).fill(height)
+
+    await page.locator("#blood-type").click()
+    await page.getByRole("option", { name: bloodType, exact: true }).click()
+
+    await page.locator("#smoking-status").click()
+    await page.getByRole("option", { name: smoking, exact: true }).click()
+
+    await page.locator("#alcohol-consumption").click()
+    await page.getByRole("option", { name: alcohol, exact: true }).click()
+
+    await page.locator("#exercise-frequency").click()
+    await page.getByRole("option", { name: exercise, exact: true }).click()
+  },
+)
+
+When("they submit the onboarding form", async ({ page }) => {
+  const submitBtn = page.getByRole("button", { name: /complete|submit/i }).first()
+  await submitBtn.click()
+})
+
+Then("the member onboarding is marked complete", async ({ page }) => {
+  await page.waitForResponse(
+    (response) =>
+      response.url().includes("/members/me/details") &&
+      response.request().method() === "POST",
+  )
+  const user = await expectCurrentUser(page)
+  expect(user.requires_onboarding).toBe(false)
+})
+
+Then("the member reaches the web dashboard page", async ({ page }) => {
+  await page.waitForURL((url) => url.pathname === "/", { timeout: 10000 })
+})
+
+Given(
+  "the member has completed onboarding with {string}, {string}, {string}",
+  async ({ page, invitationWorld }, firstName: string, lastName: string, phone: string) => {
+    invitationWorld.memberFirstName = firstName
+    invitationWorld.memberLastName = lastName
+    invitationWorld.memberPhone = phone
+
+    const res = await page.request.post(`${apiOrigin()}/members/me/details`, {
+      data: {
+        first_name: firstName,
+        last_name: lastName,
+        phone_number: phone,
+        date_of_birth: "1990-01-01",
+      },
+    })
+    expect(res.ok(), await res.text()).toBeTruthy()
+
+    const user = await expectCurrentUser(page)
+    expect(user.requires_onboarding).toBe(false)
+  },
+)
+
+When("they open the profile settings page", async ({ page }) => {
+  await page.goto(`${webOrigin()}/settings`)
+  await expect(page.getByRole("heading", { name: /perfil personal|settings/i })).toBeVisible()
+})
+
+When(
+  "they update their name to {string}, {string} and phone to {string}",
+  async ({ page }, firstName: string, lastName: string, phone: string) => {
+    await page.getByLabel(/nombre/i).fill(firstName)
+    await page.getByLabel(/apellido/i).fill(lastName)
+    await page.getByLabel(/teléfono/i).fill(phone)
+
+    const saveBtn = page.getByRole("button", { name: /guardar cambios|save/i })
+    await saveBtn.click()
+  },
+)
+
+Then("the profile changes are saved successfully", async ({ page }) => {
+  await expect(page.getByText("Cambios guardados con éxito.")).toBeVisible()
+
+  const res = await page.request.get(`${apiOrigin()}/members/me/profile`)
+  expect(res.ok(), await res.text()).toBeTruthy()
+  const profile = (await res.json()) as {
+    first_name: string
+    last_name: string
+    phone_number: string
+  }
+  expect(profile.first_name).toBe("Janice")
+  expect(profile.last_name).toBe("Smith")
+  expect(profile.phone_number).toBe("+54 11 5555-4444")
+})
