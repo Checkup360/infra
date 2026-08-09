@@ -9,6 +9,7 @@ import {
 } from "./fixtures"
 import {
   apiOrigin,
+  apiSignInAsSuperuser,
   backofficeOrigin,
   dashboardOrigin,
   expectCurrentUser,
@@ -539,4 +540,189 @@ Then("the invited user has both member and admin roles", async ({ page, invitati
     organization_id: organizationId,
     roles: expect.arrayContaining(["member", "admin"]),
   })
+})
+
+// --- Backoffice Invitation Management UI Step Definitions ---
+
+When("the sysadmin creates a sysadmin invitation for {string}", async ({ page, invitationWorld }, emailPrefix: string) => {
+  const suffix = uniqueSuffix()
+  const sysEmail = `${emailPrefix.split("@")[0]}-${suffix}@example.com`
+  invitationWorld.invitedEmail = sysEmail
+
+  const createBtn = page.getByRole("button", { name: /create invitation/i })
+  if (await createBtn.isVisible()) {
+    await createBtn.click()
+  }
+  await expect(page.getByRole("heading", { name: /choose invitation type/i })).toBeVisible({ timeout: 10000 })
+
+  await page.locator("label", { hasText: /sysadmin registration/i }).click()
+  await page.getByRole("button", { name: /^continue$/i }).click()
+
+  await page.locator("#email").fill(sysEmail)
+  await page.getByRole("button", { name: /generate link/i }).click()
+
+  await expect(page.getByRole("heading", { name: /invitation created/i })).toBeVisible()
+})
+
+Then("the invitation is generated and appears in the invitation list", async ({ page, invitationWorld }) => {
+  const targetEmail = invitationWorld.invitedEmail!
+  await page.getByRole("button", { name: /back to invitations/i }).click()
+  await page.waitForURL((url) => url.pathname === "/invitations")
+
+  await page.getByPlaceholder(/search by email/i).fill(targetEmail)
+  await expect(page.locator("tbody").getByText(targetEmail)).toBeVisible({ timeout: 10000 })
+})
+
+Given("there is an existing organization for invitation", async ({ page, invitationWorld }) => {
+  await apiSignInAsSuperuser(page, "setup org for invitation")
+  const suffix = uniqueSuffix()
+  const orgName = `Org Invite Test ${suffix}`
+  const orgSlug = `org-invite-test-${suffix}`
+
+  const res = await page.request.post(`${apiOrigin()}/organizations/`, {
+    data: { name: orgName, slug: orgSlug },
+  })
+  expect(res.ok(), await res.text()).toBeTruthy()
+  const body = (await res.json()) as { id: string; name: string }
+
+  invitationWorld.organizationId = body.id
+  invitationWorld.organizationName = body.name
+
+  await page.goto(`${backofficeOrigin()}/invitations`)
+  await page.waitForURL((url) => url.pathname === "/invitations")
+})
+
+When(
+  "the sysadmin creates an organization invite for {string} with role {string}",
+  async ({ page, invitationWorld }, emailPrefix: string, role: string) => {
+    const suffix = uniqueSuffix()
+    const targetEmail = `${emailPrefix.split("@")[0]}-${suffix}@example.com`
+    const orgName = invitationWorld.organizationName!
+
+    invitationWorld.invitedEmail = targetEmail
+
+    const createBtn = page.getByRole("button", { name: /create invitation/i })
+    if (await createBtn.isVisible()) {
+      await createBtn.click()
+    }
+    await expect(page.getByRole("heading", { name: /choose invitation type/i })).toBeVisible({ timeout: 10000 })
+
+    await page.locator("label", { hasText: /organization registration/i }).click()
+    await page.getByRole("button", { name: /^continue$/i }).click()
+
+    await expect(page.locator("#organization")).toBeEnabled({ timeout: 10000 })
+    await page.locator("#organization").click()
+
+    const orgOption = page.getByRole("option", { name: orgName })
+    await expect(orgOption).toBeVisible({ timeout: 10000 })
+    await orgOption.dispatchEvent("click")
+
+    await page.locator("#role").click()
+    const roleOption = page.getByRole("option", { name: new RegExp(role, "i") })
+    await expect(roleOption).toBeVisible({ timeout: 10000 })
+    await roleOption.dispatchEvent("click")
+
+    await page.locator("#email").fill(targetEmail)
+    await page.getByRole("button", { name: /generate link/i }).click()
+
+    await expect(page.getByRole("heading", { name: /invitation created/i })).toBeVisible()
+  },
+)
+
+Then("the organization invitation appears in the list", async ({ page, invitationWorld }) => {
+  const targetEmail = invitationWorld.invitedEmail!
+  await page.getByRole("button", { name: /back to invitations/i }).click()
+  await page.waitForURL((url) => url.pathname === "/invitations")
+
+  await page.getByPlaceholder(/search by email/i).fill(targetEmail)
+  await expect(page.locator("tbody").getByText(targetEmail)).toBeVisible({ timeout: 10000 })
+})
+
+Given("there are sysadmin and organization invitations created", async ({ page, invitationWorld }) => {
+  await apiSignInAsSuperuser(page, "setup filter scenario")
+  const suffix = uniqueSuffix()
+
+  // Create Org first
+  const orgName = `Org Filter ${suffix}`
+  const orgRes = await page.request.post(`${apiOrigin()}/organizations/`, {
+    data: { name: orgName, slug: `org-filter-${suffix}` },
+  })
+  expect(orgRes.ok(), await orgRes.text()).toBeTruthy()
+  const orgBody = (await orgRes.json()) as { id: string }
+
+  const sysEmail = `sysadmin-filter-${suffix}@example.com`
+  const orgEmail = `org-filter-${suffix}@example.com`
+
+  const sysRes = await page.request.post(`${apiOrigin()}/admin/invites`, {
+    data: { email: sysEmail, expires_in_hours: 24, is_sysadmin: true },
+  })
+  expect(sysRes.ok(), await sysRes.text()).toBeTruthy()
+
+  const orgInvRes = await page.request.post(`${apiOrigin()}/invites/organization`, {
+    data: { organization_id: orgBody.id, role: "admin", email: orgEmail, max_uses: 1, expires_in_hours: 24 },
+  })
+  expect(orgInvRes.ok(), await orgInvRes.text()).toBeTruthy()
+
+  invitationWorld.invitedEmail = sysEmail
+  invitationWorld.memberLastName = orgEmail
+
+  await page.goto(`${backofficeOrigin()}/invitations`)
+  await page.waitForURL((url) => url.pathname === "/invitations")
+})
+
+When(
+  "the sysadmin filters invitations by type {string} and searches for {string}",
+  async ({ page, invitationWorld }, typeLabel: string, _searchTarget: string) => {
+    const sysEmail = invitationWorld.invitedEmail!
+
+    // Filter by type
+    await page.getByRole("combobox").first().click()
+    await page.getByRole("option", { name: new RegExp(`^${typeLabel}$`, "i") }).click()
+
+    // Search by email
+    await page.getByPlaceholder(/search by email/i).fill(sysEmail)
+  },
+)
+
+Then("only the matching sysadmin invitation is displayed in the table", async ({ page, invitationWorld }) => {
+  const sysEmail = invitationWorld.invitedEmail!
+  const orgEmail = invitationWorld.memberLastName!
+
+  await expect(page.locator("tbody").getByText(sysEmail)).toBeVisible({ timeout: 10000 })
+  await expect(page.locator("tbody").getByText(orgEmail)).toBeHidden({ timeout: 10000 })
+})
+
+Given("there is an active invitation to be deleted", async ({ page, invitationWorld }) => {
+  await apiSignInAsSuperuser(page, "setup delete scenario")
+  const suffix = uniqueSuffix()
+  const sysEmail = `sys-to-delete-${suffix}@example.com`
+
+  const sysRes = await page.request.post(`${apiOrigin()}/admin/invites`, {
+    data: { email: sysEmail, expires_in_hours: 24, is_sysadmin: true },
+  })
+  expect(sysRes.ok(), await sysRes.text()).toBeTruthy()
+
+  invitationWorld.invitedEmail = sysEmail
+
+  await page.goto(`${backofficeOrigin()}/invitations`)
+  await page.waitForURL((url) => url.pathname === "/invitations")
+})
+
+When("the sysadmin deletes the invitation", async ({ page, invitationWorld }) => {
+  const sysEmail = invitationWorld.invitedEmail!
+
+  await page.getByPlaceholder(/search by email/i).fill(sysEmail)
+  const row = page.locator("tr", { hasText: sysEmail })
+  await expect(row).toBeVisible({ timeout: 10000 })
+
+  await row.getByRole("button", { name: /delete invitation/i }).click()
+
+  await expect(page.getByRole("heading", { name: /delete invitation\?/i })).toBeVisible()
+  await page.getByRole("button", { name: /delete invitation/i }).last().click()
+  await expect(page.getByRole("heading", { name: /delete invitation\?/i })).toBeHidden()
+})
+
+Then("the invitation is removed from the invitation list", async ({ page, invitationWorld }) => {
+  const sysEmail = invitationWorld.invitedEmail!
+  await expect(page.locator("tbody").getByText(sysEmail)).toBeHidden({ timeout: 10000 })
 })

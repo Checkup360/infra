@@ -46,7 +46,26 @@ Feature: Invitations
     Then the invited user is signed in as an organization admin
     And the invited user has both member and admin roles
 
-  @skip
+  # --- Backoffice Invitation Management UI ---
+
+  Scenario: Sysadmin creates a new sysadmin invitation from backoffice management
+    When the sysadmin creates a sysadmin invitation for "new-sysadmin@example.com"
+    Then the invitation is generated and appears in the invitation list
+
+  Scenario: Sysadmin creates a new organization admin invitation from backoffice management
+    When the sysadmin creates an organization invite for "org-admin@example.com" with role "admin"
+    Then the organization invitation appears in the list
+
+  Scenario: Sysadmin filters invitations by type and email search
+    Given there are sysadmin and organization invitations created
+    When the sysadmin filters invitations by type "Sysadmin" and searches for "sysadmin"
+    Then only the matching sysadmin invitation is displayed in the table
+
+  Scenario: Sysadmin deletes an invitation
+    Given there is an active invitation to be deleted
+    When the sysadmin deletes the invitation
+    Then the invitation is removed from the invitation list
+
   Scenario: Admin accepts member invitation for the same organization and has both roles
     Given there is a signed-in organization admin for invitations
     And they receive a member invitation for the organization
