@@ -142,16 +142,18 @@ When(
 )
 
 When("they submit the onboarding form", async ({ page }) => {
-  const submitBtn = page.getByRole("button", { name: /complete|submit/i }).first()
-  await submitBtn.click()
-})
-
-Then("the member onboarding is marked complete", async ({ page }) => {
-  await page.waitForResponse(
+  const submitPromise = page.waitForResponse(
     (response) =>
       response.url().includes("/members/me/details") &&
       response.request().method() === "POST",
   )
+  const submitBtn = page.getByRole("button", { name: /complete|submit/i }).first()
+  await submitBtn.click()
+  const res = await submitPromise
+  expect(res.ok()).toBeTruthy()
+})
+
+Then("the member onboarding is marked complete", async ({ page }) => {
   const user = await expectCurrentUser(page)
   expect(user.requires_onboarding).toBe(false)
 })
