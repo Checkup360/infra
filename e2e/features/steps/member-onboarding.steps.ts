@@ -186,7 +186,7 @@ Given(
 
 When("they open the profile settings page", async ({ page }) => {
   await page.goto(`${webOrigin()}/settings`)
-  await expect(page.getByRole("heading", { name: /personal profile|settings/i })).toBeVisible()
+  await expect(page.getByRole("heading", { name: "Settings", exact: true })).toBeVisible()
 })
 
 When(
