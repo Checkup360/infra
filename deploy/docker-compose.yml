@@ -81,6 +81,8 @@ services:
         condition: service_started
       backoffice:
         condition: service_started
+      cms:
+        condition: service_started
     ports:
       - "80:80"
       - "443:443"
@@ -94,9 +96,35 @@ services:
       - DASHBOARD_HOST=${DASHBOARD_HOST}
       - BACKOFFICE_HOST=${BACKOFFICE_HOST}
       - WEB_HOST=${WEB_HOST}
+      - CMS_HOST=${CMS_HOST}
       - CADDY_EMAIL=${CADDY_EMAIL}
+
+  cms:
+    image: ${IMAGE_REGISTRY}/cms:${CMS_VERSION:-latest}
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_HOST: db
+      POSTGRES_PORT: "5432"
+      PAYLOAD_SECRET: ${PAYLOAD_SECRET}
+      AUTH_SECRET: ${AUTH_SECRET}
+      BACKEND_URL: http://backend:8000
+      AUTH_COOKIE_NAME: auth
+      PUBLIC_WEB_ORIGIN: https://${WEB_HOST}
+    expose:
+      - "3000"
+    volumes:
+      - cms_media:/app/media
 
 volumes:
   postgres_data:
   caddy_data:
   caddy_config:
+  cms_media:

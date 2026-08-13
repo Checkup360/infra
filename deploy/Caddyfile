@@ -42,3 +42,9 @@
         reverse_proxy web:80
     }
 }
+
+{$CMS_HOST} {
+    handle {
+        reverse_proxy cms:3000
+    }
+}

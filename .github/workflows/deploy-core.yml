@@ -12,6 +12,9 @@ on:
       frontends_version:
         required: true
         type: string
+      cms_version:
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -25,24 +28,27 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Deploy
+          # using v1.2.5
         uses: appleboy/ssh-action@v1.2.5
         env:
           ENV_FILE: ${{ secrets.ENV_FILE }}
           BACKEND_VERSION: ${{ inputs.backend_version }}
           FRONTENDS_VERSION: ${{ inputs.frontends_version }}
+          CMS_VERSION: ${{ inputs.cms_version }}
           ORG_PAT: ${{ secrets.ORG_PAT }}
           GITHUB_ACTOR: ${{ github.actor }}
         with:
           host: ${{ secrets.DEPLOY_SERVER_HOST }}
           username: ${{ secrets.DEPLOY_SSH_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
-          envs: ENV_FILE,BACKEND_VERSION,FRONTENDS_VERSION,ORG_PAT,GITHUB_ACTOR
+          envs: ENV_FILE,BACKEND_VERSION,FRONTENDS_VERSION,CMS_VERSION,ORG_PAT,GITHUB_ACTOR
           script: |
             {
               echo "$ENV_FILE"
               echo "IMAGE_REGISTRY=ghcr.io/checkup360"
               echo "BACKEND_VERSION=$BACKEND_VERSION"
               echo "FRONTENDS_VERSION=$FRONTENDS_VERSION"
+              echo "CMS_VERSION=$CMS_VERSION"
             } > /opt/app/deploy/${{ inputs.environment }}/.env
             echo "$ORG_PAT" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
             cd /opt/app/deploy/${{ inputs.environment }}

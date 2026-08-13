@@ -14,6 +14,7 @@ jobs:
     outputs:
       backend: ${{ steps.versions.outputs.backend }}
       frontends: ${{ steps.versions.outputs.frontends }}
+      cms: ${{ steps.versions.outputs.cms }}
     steps:
       - uses: actions/checkout@v4
       - uses: mikefarah/yq@v4.53.2
@@ -22,8 +23,10 @@ jobs:
         run: |
           BACKEND=$(yq '.backend' versions/prod.yml)
           FRONTENDS=$(yq '.frontends' versions/prod.yml)
+          CMS=$(yq '.cms' versions/prod.yml)
           echo "backend=$BACKEND" >> $GITHUB_OUTPUT
           echo "frontends=$FRONTENDS" >> $GITHUB_OUTPUT
+          echo "cms=$CMS" >> $GITHUB_OUTPUT
 
   deploy:
     needs: read-versions
@@ -32,4 +35,5 @@ jobs:
       environment: prod
       backend_version: ${{ needs.read-versions.outputs.backend }}
       frontends_version: ${{ needs.read-versions.outputs.frontends }}
+      cms_version: ${{ needs.read-versions.outputs.cms }}
     secrets: inherit

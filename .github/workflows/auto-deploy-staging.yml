@@ -17,6 +17,7 @@ jobs:
     outputs:
       backend: ${{ steps.versions.outputs.backend }}
       frontends: ${{ steps.versions.outputs.frontends }}
+      cms: ${{ steps.versions.outputs.cms }}
 
     steps:
       - uses: actions/checkout@v4
@@ -31,9 +32,11 @@ jobs:
         run: |
           BACKEND=$(yq '.backend' versions/staging.yml)
           FRONTENDS=$(yq '.frontends' versions/staging.yml)
+          CMS=$(yq '.cms' versions/staging.yml)
           echo "backend=$BACKEND" >> $GITHUB_OUTPUT
           echo "frontends=$FRONTENDS" >> $GITHUB_OUTPUT
-          echo "Deploying: backend=$BACKEND frontends=$FRONTENDS"
+          echo "cms=$CMS" >> $GITHUB_OUTPUT
+          echo "Deploying: backend=$BACKEND frontends=$FRONTENDS cms=$CMS"
 
   deploy-staging:
     needs: read-versions
@@ -41,6 +44,7 @@ jobs:
     with:
       backend_version: ${{ needs.read-versions.outputs.backend }}
       frontends_version: ${{ needs.read-versions.outputs.frontends }}
+      cms_version: ${{ needs.read-versions.outputs.cms }}
       environment: staging
     secrets: inherit
 
@@ -60,19 +64,21 @@ jobs:
           cmd: |
             yq -i '.backend = "${{ needs.read-versions.outputs.backend }}"' versions/prod.yml
             yq -i '.frontends = "${{ needs.read-versions.outputs.frontends }}"' versions/prod.yml
+            yq -i '.cms = "${{ needs.read-versions.outputs.cms }}"' versions/prod.yml
       - name: Create prod PR
         uses: peter-evans/create-pull-request@v5
         with:
           token: ${{ secrets.REPO_DISPATCH_TOKEN }}
-          commit-message: "chore(prod): promote ${{ needs.read-versions.outputs.backend }}"
-          branch: "update/prod-${{ needs.read-versions.outputs.backend }}-${{ needs.read-versions.outputs.frontends }}"
+          commit-message: "chore(prod): promote versions"
+          branch: "update/prod-${{ needs.read-versions.outputs.backend }}-${{ needs.read-versions.outputs.frontends }}-${{ needs.read-versions.outputs.cms }}"
           delete-branch: true
-          title: "Prod Deploy: backend=${{ needs.read-versions.outputs.backend }} frontends=${{ needs.read-versions.outputs.frontends }}"
+          title: "Prod Deploy: backend=${{ needs.read-versions.outputs.backend }} frontends=${{ needs.read-versions.outputs.frontends }} cms=${{ needs.read-versions.outputs.cms }}"
           body: |
             Staging deployed and verified
 
             **Backend**: `${{ needs.read-versions.outputs.backend }}`
             **Frontends**: `${{ needs.read-versions.outputs.frontends }}`
+            **CMS**: `${{ needs.read-versions.outputs.cms }}`
 
             Once approved and merged, the deployment in production will be triggered automatically.
           labels: deployment,prod
