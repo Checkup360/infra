@@ -186,23 +186,23 @@ Given(
 
 When("they open the profile settings page", async ({ page }) => {
   await page.goto(`${webOrigin()}/settings`)
-  await expect(page.getByRole("heading", { name: /perfil personal|settings/i })).toBeVisible()
+  await expect(page.getByRole("heading", { name: /personal profile|settings/i })).toBeVisible()
 })
 
 When(
   "they update their name to {string}, {string} and phone to {string}",
   async ({ page }, firstName: string, lastName: string, phone: string) => {
-    await page.getByLabel(/nombre/i).fill(firstName)
-    await page.getByLabel(/apellido/i).fill(lastName)
-    await page.getByLabel(/teléfono/i).fill(phone)
+    await page.getByLabel(/first name/i).fill(firstName)
+    await page.getByLabel(/last name/i).fill(lastName)
+    await page.getByLabel(/phone number/i).fill(phone)
 
-    const saveBtn = page.getByRole("button", { name: /guardar cambios|save/i })
+    const saveBtn = page.getByRole("button", { name: /save changes|save/i })
     await saveBtn.click()
   },
 )
 
 Then("the profile changes are saved successfully", async ({ page }) => {
-  await expect(page.getByText("Cambios guardados con éxito.")).toBeVisible()
+  await expect(page.getByText("Changes saved successfully.")).toBeVisible()
 
   const res = await page.request.get(`${apiOrigin()}/members/me/profile`)
   expect(res.ok(), await res.text()).toBeTruthy()
