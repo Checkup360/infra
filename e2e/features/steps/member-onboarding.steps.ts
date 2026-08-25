@@ -196,8 +196,8 @@ When(
     await page.getByLabel(/last name/i).fill(lastName)
     await page.getByLabel(/phone number/i).fill(phone)
 
-    const saveBtn = page.getByRole("button", { name: /save changes|save/i })
-    await saveBtn.click()
+    const profileForm = page.locator("form").filter({ has: page.getByLabel(/first name/i) })
+    await profileForm.getByRole("button", { name: /save changes|save/i }).click()
   },
 )
 
