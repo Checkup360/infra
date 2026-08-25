@@ -215,3 +215,73 @@ Then("the profile changes are saved successfully", async ({ page }) => {
   expect(profile.last_name).toBe("Smith")
   expect(profile.phone_number).toBe("+54 11 5555-4444")
 })
+
+When(
+  "they update their biometrics to sex {string}, height {string}, weight {string}",
+  async ({ page }, sex: string, height: string, weight: string) => {
+    const biometricsForm = page.locator("form").filter({ has: page.getByLabel(/height/i) })
+
+    await biometricsForm.getByLabel(/biological sex/i).click()
+    await page.getByRole("option", { name: new RegExp(`^${sex}$`, "i") }).click()
+
+    await biometricsForm.getByLabel(/height/i).fill(height)
+    await biometricsForm.getByLabel(/weight/i).fill(weight)
+
+    const patchPromise = page.waitForResponse(
+      (res) => res.url().includes("/biometrics") && res.request().method() === "PATCH",
+    )
+    await biometricsForm.getByRole("button", { name: /save changes|save/i }).click()
+    const patchRes = await patchPromise
+    expect(patchRes.ok(), await patchRes.text()).toBeTruthy()
+  },
+)
+
+Then("the biometrics changes are saved successfully", async ({ page }) => {
+  await expect(
+    page.locator("form").filter({ has: page.getByLabel(/height/i) }).getByText("Changes saved successfully."),
+  ).toBeVisible()
+
+  const res = await page.request.get(`${apiOrigin()}/members/me/biometrics`)
+  expect(res.ok(), await res.text()).toBeTruthy()
+  const biometrics = (await res.json()) as {
+    biological_sex: string | null
+    height: number | null
+    weight: number | null
+  }
+  expect(biometrics.biological_sex).toBe("male")
+  expect(biometrics.height).toBe(175)
+  expect(biometrics.weight).toBe(72)
+})
+
+Given(
+  "they have saved biometrics with sex {string}, height {string}, weight {string}",
+  async ({ page }, sex: string, height: string, weight: string) => {
+    const res = await page.request.patch(`${apiOrigin()}/members/me/biometrics`, {
+      data: {
+        biological_sex: sex,
+        height: parseFloat(height),
+        weight: parseFloat(weight),
+      },
+    })
+    expect(res.ok(), await res.text()).toBeTruthy()
+  },
+)
+
+Then(
+  "the profile form shows first name {string}, last name {string}",
+  async ({ page }, firstName: string, lastName: string) => {
+    const profileForm = page.locator("form").filter({ has: page.getByLabel(/first name/i) })
+    await expect(profileForm.getByLabel(/first name/i)).toHaveValue(firstName)
+    await expect(profileForm.getByLabel(/last name/i)).toHaveValue(lastName)
+  },
+)
+
+Then(
+  "the biometrics form shows height {string} and weight {string}",
+  async ({ page }, height: string, weight: string) => {
+    const biometricsForm = page.locator("form").filter({ has: page.getByLabel(/height/i) })
+    await expect(biometricsForm.getByLabel(/height/i)).toHaveValue(height)
+    await expect(biometricsForm.getByLabel(/weight/i)).toHaveValue(weight)
+  },
+)
+

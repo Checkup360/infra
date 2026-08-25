@@ -25,3 +25,16 @@ Feature: Member onboarding and profile management
     When they open the profile settings page
     And they update their name to "Janice", "Smith" and phone to "+54 11 5555-4444"
     Then the profile changes are saved successfully
+
+  Scenario: Member updates biometrics settings
+    Given the member has completed onboarding with "Alex", "Torres", "+54 11 1111-2222"
+    When they open the profile settings page
+    And they update their biometrics to sex "male", height "175", weight "72"
+    Then the biometrics changes are saved successfully
+
+  Scenario: Settings page pre-fills saved data on reload
+    Given the member has completed onboarding with "Laura", "Gomez", "+54 11 3333-4444"
+    And they have saved biometrics with sex "female", height "162", weight "58"
+    When they open the profile settings page
+    Then the profile form shows first name "Laura", last name "Gomez"
+    And the biometrics form shows height "162" and weight "58"
