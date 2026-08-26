@@ -85,10 +85,10 @@ When("they fill in the required assessment data", async ({ page }) => {
   // Yes/No radio groups — use the question label IDs defined in the form
   await page.locator("#snoring-no").click()
   await page.locator("#tired-no").click()
-  await page.locator("#observed_apnea-no").click()
-  await page.locator("#bp-no").click()
+  await page.locator("#apnea-no").click()
+  await page.locator("#hyp-no").click()
   await page.locator("#pa-yes").click()
-  await page.locator("#fv-yes").click()
+  await page.locator("#fv-everyday").click()
   await page.locator("#hg-no").click()
   await page.locator("#fd-no").click()
 })
