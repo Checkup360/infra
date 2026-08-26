@@ -1,4 +1,10 @@
 services:
+  motor:
+    image: checkup360/motor:local
+    build:
+      context: ../engine
+      dockerfile: Dockerfile
+
   backend:
     image: checkup360/backend:local
     build:
