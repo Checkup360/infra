@@ -101,6 +101,14 @@ jobs:
           path: frontends
           token: ${{ secrets.ORG_PAT }}
 
+      - name: Checkout engine (build mode)
+        if: steps.mode.outputs.is_pull == 'false'
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/engine
+          path: engine
+          token: ${{ secrets.ORG_PAT }}
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 

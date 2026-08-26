@@ -1,4 +1,11 @@
 services:
+  motor:
+    build:
+      cache_from:
+        - type=gha,scope=e2e-motor
+      cache_to:
+        - type=gha,mode=max,scope=e2e-motor
+
   backend:
     build:
       cache_from:
