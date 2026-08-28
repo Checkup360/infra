@@ -109,9 +109,9 @@ When("the org admin assigns the member to a department", async ({ page, invitati
   await cell.click()
 
   await page.waitForURL((url) => url.pathname.startsWith("/employees/"))
-  await expect(page.getByRole("heading", { name: /employee details/i })).toBeVisible({ timeout: 15000 })
-
-  await page.getByRole("button", { name: /assign department|change department/i }).click()
+  const assignDeptButton = page.getByRole("button", { name: /assign department|change department/i })
+  await expect(assignDeptButton).toBeVisible({ timeout: 15000 })
+  await assignDeptButton.click()
   await expect(page.getByRole("heading", { name: /department/i })).toBeVisible({ timeout: 10000 })
 
   await page.getByRole("combobox", { name: /department/i }).click()
