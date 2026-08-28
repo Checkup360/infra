@@ -5,6 +5,7 @@ import {
   apiSignInAsSuperuser,
   createAndRedeemOrgInvite,
   createTestOrganization,
+  submitSignInForm,
   uniqueSuffix,
   webOrigin,
 } from "./e2e-helpers"
@@ -51,6 +52,9 @@ Given("there is a member with completed onboarding for assessments", async ({ pa
   invitationWorld.invitedEmail = email
   invitationWorld.invitedPassword = password
 
+  // Open web origin to establish browser session and local storage
+  await page.goto(webOrigin())
+
   // Complete onboarding via API so the member can access forms
   const detailsRes = await page.request.post(`${apiOrigin()}/members/me/details`, {
     data: {
@@ -80,6 +84,7 @@ When("the member navigates to the clinical studies form", async ({ page }) => {
 })
 
 When("they fill in the required assessment data", async ({ page }) => {
+  await expect(page.locator("#sex-male")).toBeEnabled({ timeout: 10_000 })
   await page.locator("#sex-male").click()
   await page.locator("#height").fill("175")
   await page.locator("#weight").fill("70")
@@ -88,6 +93,10 @@ When("they fill in the required assessment data", async ({ page }) => {
 })
 
 When("they submit the assessment", async ({ page }) => {
+  const saveBtn = page.getByRole("button", { name: /save biometrics|submit/i })
+  if (await saveBtn.isVisible()) {
+    await saveBtn.click()
+  }
   const res = await page.request.post(`${apiOrigin()}/members/me/assessments/evaluate`, {
     data: LOW_RISK_ASSESSMENT_PAYLOAD,
   })

@@ -211,11 +211,10 @@ When(
     await page.goto(`${webOrigin()}/forms/studies?form=biometrics`)
     await page.waitForURL((url) => url.pathname === "/forms/studies")
 
-    if (sex.toLowerCase().startsWith("m")) {
-      await page.locator("#sex-male").click()
-    } else {
-      await page.locator("#sex-female").click()
-    }
+    const radioLocator = sex.toLowerCase().startsWith("m") ? page.locator("#sex-male") : page.locator("#sex-female")
+    await expect(radioLocator).toBeEnabled({ timeout: 10_000 })
+    await radioLocator.click()
+
     await page.locator("#height").fill(height)
     await page.locator("#weight").fill(weight)
     await page.locator("#neck_circumference").fill("38")
