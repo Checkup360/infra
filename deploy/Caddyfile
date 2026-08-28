@@ -9,7 +9,8 @@
             apiOrigin: "https://{$API_HOST}", 
             webOrigin: "https://{$WEB_HOST}",
             dashboardOrigin: "https://{$DASHBOARD_HOST}",
-            backofficeOrigin: "https://{$BACKOFFICE_HOST}"
+            backofficeOrigin: "https://{$BACKOFFICE_HOST}",
+            cmsOrigin: "https://{$CMS_HOST}"
         };`
     }
 }
