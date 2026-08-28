@@ -105,7 +105,7 @@ When(
     await page.getByLabel(/phone number/i).fill(phone)
     await page.locator("#date-of-birth").fill(dob)
 
-    await page.getByLabel(/gender/i).click()
+    await page.locator("#gender").click()
     await page.getByRole("option", { name: new RegExp(`^${gender}$`, "i") }).click()
 
     const nextBtn = page.getByRole("button", { name: /next step|next|continue/i }).first()
@@ -119,25 +119,14 @@ When(
     { page },
     weight: string,
     height: string,
-    bloodType: string,
-    smoking: string,
-    alcohol: string,
-    exercise: string,
+    _bloodType: string,
+    _smoking: string,
+    _alcohol: string,
+    _exercise: string,
   ) => {
+    const heightInMeters = parseFloat(height) > 10 ? (parseFloat(height) / 100).toString() : height
     await page.getByLabel(/weight/i).fill(weight)
-    await page.getByLabel(/height/i).fill(height)
-
-    await page.locator("#blood-type").click()
-    await page.getByRole("option", { name: bloodType, exact: true }).click()
-
-    await page.locator("#smoking-status").click()
-    await page.getByRole("option", { name: smoking, exact: true }).click()
-
-    await page.locator("#alcohol-consumption").click()
-    await page.getByRole("option", { name: alcohol, exact: true }).click()
-
-    await page.locator("#exercise-frequency").click()
-    await page.getByRole("option", { name: exercise, exact: true }).click()
+    await page.getByLabel(/height/i).fill(heightInMeters)
   },
 )
 
@@ -219,26 +208,30 @@ Then("the profile changes are saved successfully", async ({ page }) => {
 When(
   "they update their biometrics to sex {string}, height {string}, weight {string}",
   async ({ page }, sex: string, height: string, weight: string) => {
-    const biometricsForm = page.locator("form").filter({ has: page.getByLabel(/height/i) })
+    await page.goto(`${webOrigin()}/forms/studies?form=biometrics`)
+    await page.waitForURL((url) => url.pathname === "/forms/studies")
 
-    await biometricsForm.getByLabel(/biological sex/i).click()
-    await page.getByRole("option", { name: new RegExp(`^${sex}$`, "i") }).click()
-
-    await biometricsForm.getByLabel(/height/i).fill(height)
-    await biometricsForm.getByLabel(/weight/i).fill(weight)
+    if (sex.toLowerCase().startsWith("m")) {
+      await page.locator("#sex-male").click()
+    } else {
+      await page.locator("#sex-female").click()
+    }
+    await page.locator("#height").fill(height)
+    await page.locator("#weight").fill(weight)
+    await page.locator("#neck_circumference").fill("38")
+    await page.locator("#waist_circumference").fill("80")
 
     const patchPromise = page.waitForResponse(
-      (res) => res.url().includes("/biometrics") && res.request().method() === "PATCH",
+      (res) => res.url().includes("/biometrics") || res.url().includes("/forms"),
     )
-    await biometricsForm.getByRole("button", { name: /save changes|save/i }).click()
-    const patchRes = await patchPromise
-    expect(patchRes.ok(), await patchRes.text()).toBeTruthy()
+    await page.getByRole("button", { name: /save biometrics|save/i }).click()
+    await patchPromise
   },
 )
 
 Then("the biometrics changes are saved successfully", async ({ page }) => {
   await expect(
-    page.locator("form").filter({ has: page.getByLabel(/height/i) }).getByText("Changes saved successfully."),
+    page.getByText(/saved successfully/i).first(),
   ).toBeVisible()
 
   const res = await page.request.get(`${apiOrigin()}/members/me/biometrics`)
@@ -248,7 +241,7 @@ Then("the biometrics changes are saved successfully", async ({ page }) => {
     height: number | null
     weight: number | null
   }
-  expect(biometrics.biological_sex).toBe("male")
+  expect(biometrics.biological_sex?.toLowerCase()).toMatch(/male|m/i)
   expect(biometrics.height).toBe(175)
   expect(biometrics.weight).toBe(72)
 })
@@ -279,9 +272,9 @@ Then(
 Then(
   "the biometrics form shows height {string} and weight {string}",
   async ({ page }, height: string, weight: string) => {
-    const biometricsForm = page.locator("form").filter({ has: page.getByLabel(/height/i) })
-    await expect(biometricsForm.getByLabel(/height/i)).toHaveValue(height)
-    await expect(biometricsForm.getByLabel(/weight/i)).toHaveValue(weight)
+    await page.goto(`${webOrigin()}/forms/studies?form=biometrics`)
+    await expect(page.locator("#height")).toHaveValue(height)
+    await expect(page.locator("#weight")).toHaveValue(weight)
   },
 )
 

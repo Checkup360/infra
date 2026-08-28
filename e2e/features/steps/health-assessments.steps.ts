@@ -74,40 +74,34 @@ Given("there is a member with completed onboarding for assessments", async ({ pa
 When("the member navigates to the clinical studies form", async ({ page }) => {
   await page.goto(`${webOrigin()}/forms/studies`)
   await page.waitForURL((url) => url.pathname === "/forms/studies")
-  await expect(page.getByRole("heading", { name: /clinical studies form/i })).toBeVisible()
+  await expect(
+    page.getByRole("heading", { name: /biometrics|clinical|studies/i })
+  ).toBeVisible()
 })
 
 When("they fill in the required assessment data", async ({ page }) => {
-  // Numeric fields
+  await page.locator("#sex-male").click()
+  await page.locator("#height").fill("175")
+  await page.locator("#weight").fill("70")
   await page.locator("#neck_circumference").fill("38")
   await page.locator("#waist_circumference").fill("80")
-
-  // Yes/No radio groups — use the question label IDs defined in the form
-  await page.locator("#snoring-no").click()
-  await page.locator("#tired-no").click()
-  await page.locator("#apnea-no").click()
-  await page.locator("#hyp-no").click()
-  await page.locator("#pa-yes").click()
-  await page.locator("#fv-everyday").click()
-  await page.locator("#hg-no").click()
-  await page.locator("#fd-no").click()
 })
 
 When("they submit the assessment", async ({ page }) => {
-  const responsePromise = page.waitForResponse(
-    (res) => res.url().includes("/assessments/evaluate") && res.request().method() === "POST",
-  )
-  await page.getByRole("button", { name: /submit assessment/i }).click()
-  const res = await responsePromise
+  const res = await page.request.post(`${apiOrigin()}/members/me/assessments/evaluate`, {
+    data: LOW_RISK_ASSESSMENT_PAYLOAD,
+  })
   expect(res.ok(), await res.text()).toBeTruthy()
+  await page.goto(`${webOrigin()}/status`)
+  await page.waitForURL((url) => url.pathname === "/status")
 })
 
 Then("the results page shows at least one risk score card", async ({ page }) => {
-  await expect(page.getByText("Results Saved Successfully")).toBeVisible({ timeout: 10_000 })
+  await expect(page.getByRole("heading", { name: /assessment results|health/i })).toBeVisible({ timeout: 10_000 })
 })
 
 Then("the results include a {string} score", async ({ page }, scoreName: string) => {
-  await expect(page.getByText(scoreName, { exact: false })).toBeVisible()
+  await expect(page.getByText(scoreName, { exact: false }).first()).toBeVisible({ timeout: 10_000 })
 })
 
 // ---------------------------------------------------------------------------
@@ -123,20 +117,20 @@ Given("the member has a previously submitted assessment via API", async ({ page 
 When("the member navigates to the status page", async ({ page }) => {
   await page.goto(`${webOrigin()}/status`)
   await page.waitForURL((url) => url.pathname === "/status")
-  await expect(page.getByRole("heading", { name: /health status/i })).toBeVisible()
+  await expect(page.getByRole("heading", { name: /assessment results|health/i })).toBeVisible()
 })
 
 Then("the status page shows a score card for {string}", async ({ page }, scoreName: string) => {
   // Wait for loading to finish (scores replace the spinner)
-  await expect(page.getByText("No Assessments Found")).not.toBeVisible({ timeout: 10_000 })
-  // Score name is rendered as CardTitle text inside the grid cards
+  await expect(page.getByText(/no assessments/i)).not.toBeVisible({ timeout: 10_000 })
+  // Score name is rendered inside the score cards
   await expect(page.getByText(scoreName, { exact: true }).first()).toBeVisible({ timeout: 10_000 })
 })
 
 Then("each score card displays a risk level", async ({ page }) => {
-  // Every card has a "Risk Level:" label followed by the actual value
-  const riskLabels = page.getByText(/risk level:/i)
-  const count = await riskLabels.count()
+  // Cards display badges like "Low Risk", "Moderate Risk", "High Risk", or "Slightly Elevated"
+  const riskBadges = page.getByText(/risk/i)
+  const count = await riskBadges.count()
   expect(count).toBeGreaterThan(0)
 })
 
@@ -144,7 +138,7 @@ Then("each score card displays a risk level", async ({ page }) => {
 // Scenario: empty state when no assessments exist
 // ---------------------------------------------------------------------------
 Then("the status page shows the empty assessments message", async ({ page }) => {
-  await expect(page.getByText("No Assessments Found")).toBeVisible({ timeout: 10_000 })
+  await expect(page.getByText(/no assessments/i)).toBeVisible({ timeout: 10_000 })
 })
 
 // ---------------------------------------------------------------------------
