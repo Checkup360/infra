@@ -141,7 +141,10 @@ jobs:
             echo "CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:5174,http://localhost:5175"
             echo "IMAGE_REGISTRY=ghcr.io/checkup360"
             echo "BACKEND_VERSION=${{ inputs.backend_version || 'latest' }}"
+            echo "ENGINE_VERSION=${{ inputs.backend_version || 'latest' }}"
             echo "FRONTENDS_VERSION=${{ inputs.frontends_version || 'latest' }}"
+            echo "ENGINE_HOST_PORT=8001"
+            echo "ENGINE_API_URL=http://engine:8001"
           } >> .env.e2e
 
       - name: Bring up the stack (pull mode)
@@ -150,7 +153,7 @@ jobs:
         run: |
           docker compose -f $COMPOSE_FILE_BASE --env-file .env.e2e pull
           docker compose -f $COMPOSE_FILE_BASE --env-file .env.e2e up -d \
-            db backend web dashboard backoffice
+            db engine backend web dashboard backoffice
 
       - name: Bring up the stack (build mode)
         if: steps.mode.outputs.is_pull == 'false'
@@ -158,7 +161,7 @@ jobs:
         run: |
           docker compose -f $COMPOSE_FILE_BASE -f $COMPOSE_FILE_LOCAL -f $COMPOSE_FILE_CI_CACHE --env-file .env.e2e build
           docker compose -f $COMPOSE_FILE_BASE -f $COMPOSE_FILE_LOCAL -f $COMPOSE_FILE_CI_CACHE --env-file .env.e2e up -d \
-            db backend web dashboard backoffice
+            db engine backend web dashboard backoffice
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4

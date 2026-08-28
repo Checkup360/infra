@@ -3,7 +3,7 @@ SHELL := /usr/bin/env bash
 COMPOSE_E2E       := docker compose -f docker-compose.e2e.yml --env-file .env.e2e
 COMPOSE_E2E_LOCAL := docker compose -f docker-compose.e2e.yml -f docker-compose.e2e.local.yml --env-file .env.e2e
 
-APP_SERVICES := db motor backend web dashboard backoffice
+APP_SERVICES := db engine backend web dashboard backoffice
 
 .PHONY: help
 help:

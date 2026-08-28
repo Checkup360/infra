@@ -17,10 +17,10 @@ services:
       timeout: 3s
       retries: 30
 
-  motor:
-    image: ${IMAGE_REGISTRY:-ghcr.io/owner}/motor:${MOTOR_VERSION:-latest}
+  engine:
+    image: ${IMAGE_REGISTRY:-ghcr.io/owner}/engine:${ENGINE_VERSION:-latest}
     ports:
-      - "${MOTOR_HOST_PORT:-8001}:8001"
+      - "${ENGINE_HOST_PORT:-8001}:8001"
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8001/').status==200 else 1)\""]
       interval: 3s
@@ -32,7 +32,7 @@ services:
     depends_on:
       db:
         condition: service_healthy
-      motor:
+      engine:
         condition: service_healthy
     environment:
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
@@ -49,7 +49,7 @@ services:
       SEED_ORG_SLUG: ${SEED_ORG_SLUG:-}
       SEED_ORG_NAME: ${SEED_ORG_NAME:-}
       SEED_OVERWRITE: ${SEED_OVERWRITE:-false}
-      MOTOR_API_URL: http://motor:${MOTOR_HOST_PORT:-8001}
+      ENGINE_API_URL: http://engine:8001
     ports:
       - "${BACKEND_HOST_PORT:-8000}:8000"
     healthcheck:

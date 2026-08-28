@@ -1,6 +1,6 @@
 services:
-  motor:
-    image: checkup360/motor:local
+  engine:
+    image: checkup360/engine:local
     build:
       context: ../engine
       dockerfile: Dockerfile
