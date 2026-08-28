@@ -11,6 +11,14 @@ on:
         description: "Frontend image tag in GHCR (e.g. v1.2.3)"
         required: true
         default: latest
+      cms_version:
+        description: "CMS image tag in GHCR (e.g. v1.2.3)"
+        required: true
+        default: latest
+      engine_version:
+        description: "Engine image tag in GHCR (e.g. v1.2.3)"
+        required: true
+        default: latest
       run_mode:
         description: "Mode: pull or build (default pull)"
         required: false
@@ -23,6 +31,14 @@ on:
         type: string
       frontends_version:
         description: "Frontend image tag in GHCR (e.g. v1.2.3)"
+        required: true
+        type: string
+      cms_version:
+        description: "CMS image tag in GHCR (e.g. v1.2.3)"
+        required: true
+        type: string
+      engine_version:
+        description: "Engine image tag in GHCR (e.g. v1.2.3)"
         required: true
         type: string
       run_mode:
@@ -141,8 +157,9 @@ jobs:
             echo "CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:5174,http://localhost:5175"
             echo "IMAGE_REGISTRY=ghcr.io/checkup360"
             echo "BACKEND_VERSION=${{ inputs.backend_version || 'latest' }}"
-            echo "ENGINE_VERSION=${{ inputs.backend_version || 'latest' }}"
             echo "FRONTENDS_VERSION=${{ inputs.frontends_version || 'latest' }}"
+            echo "CMS_VERSION=${{ inputs.cms_version || 'latest' }}"
+            echo "ENGINE_VERSION=${{ inputs.engine_version || 'latest' }}"
             echo "ENGINE_HOST_PORT=8001"
             echo "ENGINE_API_URL=http://engine:8001"
           } >> .env.e2e
