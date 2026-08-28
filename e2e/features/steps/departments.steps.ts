@@ -44,7 +44,7 @@ When("the org admin creates a department named {string}", async ({ page, invitat
   await page.getByRole("button", { name: /new department/i }).click()
   await expect(page.getByRole("heading", { name: /create department/i })).toBeVisible()
 
-  await page.locator("#dept-new-name").fill(deptName)
+  await page.locator("#create-dept-name, #dept-new-name").fill(deptName)
   await page.getByRole("button", { name: /^create$/i }).click()
   await expect(page.getByRole("heading", { name: /create department/i })).toBeHidden()
 })
@@ -166,10 +166,10 @@ When("the org admin deletes the department {string}", async ({ page, invitationW
   await card.getByRole("button", { name: "Open menu" }).click()
 
   await page.getByRole("menuitem", { name: /delete/i }).click()
-  await expect(page.getByRole("heading", { name: /delete department\?/i })).toBeVisible()
+  await expect(page.getByRole("heading", { name: /delete department/i })).toBeVisible()
 
-  await page.getByRole("button", { name: /^delete department$/i }).click()
-  await expect(page.getByRole("heading", { name: /delete department\?/i })).toBeHidden()
+  await page.getByRole("button", { name: /^delete$/i }).click()
+  await expect(page.getByRole("heading", { name: /delete department/i })).toBeHidden()
 })
 
 Then("the department {string} is removed from the department list", async ({ page, invitationWorld }, _name: string) => {

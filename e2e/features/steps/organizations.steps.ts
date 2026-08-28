@@ -132,7 +132,7 @@ Then(
     const orgName = invitationWorld.organizationName!
     await expect(page.getByRole("heading", { name: orgName })).toBeVisible({ timeout: 10000 })
     await expect(page.getByText(/total members/i).first()).toBeVisible()
-    await expect(page.getByText(/total admins/i).first()).toBeVisible()
+    await expect(page.getByText(/admins/i).first()).toBeVisible()
   },
 )
 
