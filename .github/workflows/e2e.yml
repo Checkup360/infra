@@ -49,13 +49,11 @@ on:
     branches: [main]
     paths:
       - 'e2e/**'
-      - 'docker-compose.e2e*.yml'
       - '.github/workflows/e2e.yml'
   pull_request:
     branches: [main]
     paths:
       - 'e2e/**'
-      - 'docker-compose.e2e*.yml'
       - '.github/workflows/e2e.yml'
 
 permissions:
@@ -64,9 +62,9 @@ permissions:
   actions: write
 
 env:
-  COMPOSE_FILE_BASE: docker-compose.e2e.yml
-  COMPOSE_FILE_LOCAL: docker-compose.e2e.local.yml
-  COMPOSE_FILE_CI_CACHE: docker-compose.e2e.ci-cache.yml
+  COMPOSE_FILE_BASE: e2e/compose/docker-compose.yml
+  COMPOSE_FILE_LOCAL: e2e/compose/docker-compose.local.yml
+  COMPOSE_FILE_CI_CACHE: e2e/compose/docker-compose.ci-cache.yml
 
 jobs:
   e2e:
@@ -136,10 +134,10 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.ORG_PAT }}
 
-      - name: Render .env.e2e
+      - name: Render .env
         working-directory: infra
         run: |
-          cp .env.e2e.example .env.e2e
+          cp e2e/.env.example e2e/.env
           # Make the suite address the public host ports we publish below.
           {
             echo "POSTGRES_USER=postgres"
@@ -162,22 +160,22 @@ jobs:
             echo "ENGINE_VERSION=${{ inputs.engine_version || 'latest' }}"
             echo "ENGINE_HOST_PORT=8001"
             echo "ENGINE_API_URL=http://engine:8001"
-          } >> .env.e2e
+          } >> e2e/.env
 
       - name: Bring up the stack (pull mode)
         if: steps.mode.outputs.is_pull == 'true'
         working-directory: infra
         run: |
-          docker compose -f $COMPOSE_FILE_BASE --env-file .env.e2e pull
-          docker compose -f $COMPOSE_FILE_BASE --env-file .env.e2e up -d \
+          docker compose --project-directory . -f $COMPOSE_FILE_BASE --env-file e2e/.env pull
+          docker compose --project-directory . -f $COMPOSE_FILE_BASE --env-file e2e/.env up -d \
             db engine backend web dashboard backoffice
 
       - name: Bring up the stack (build mode)
         if: steps.mode.outputs.is_pull == 'false'
         working-directory: infra
         run: |
-          docker compose -f $COMPOSE_FILE_BASE -f $COMPOSE_FILE_LOCAL -f $COMPOSE_FILE_CI_CACHE --env-file .env.e2e build
-          docker compose -f $COMPOSE_FILE_BASE -f $COMPOSE_FILE_LOCAL -f $COMPOSE_FILE_CI_CACHE --env-file .env.e2e up -d \
+          docker compose --project-directory . -f $COMPOSE_FILE_BASE -f $COMPOSE_FILE_LOCAL -f $COMPOSE_FILE_CI_CACHE --env-file e2e/.env build
+          docker compose --project-directory . -f $COMPOSE_FILE_BASE -f $COMPOSE_FILE_LOCAL -f $COMPOSE_FILE_CI_CACHE --env-file e2e/.env up -d \
             db engine backend web dashboard backoffice
 
       - name: Setup pnpm

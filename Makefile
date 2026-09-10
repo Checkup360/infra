@@ -1,7 +1,7 @@
 SHELL := /usr/bin/env bash
 
-COMPOSE_E2E       := docker compose -f docker-compose.e2e.yml --env-file .env.e2e
-COMPOSE_E2E_LOCAL := docker compose -f docker-compose.e2e.yml -f docker-compose.e2e.local.yml --env-file .env.e2e
+COMPOSE_E2E       := docker compose --project-directory . -f e2e/compose/docker-compose.yml --env-file e2e/.env
+COMPOSE_E2E_LOCAL := docker compose --project-directory . -f e2e/compose/docker-compose.yml -f e2e/compose/docker-compose.local.yml --env-file e2e/.env
 
 APP_SERVICES := db engine backend web dashboard backoffice
 
@@ -46,7 +46,7 @@ e2e-install: ## One-time setup: install e2e deps + chromium (run once / when dep
 .PHONY: e2e-test
 e2e-test: ## Run the playwright suite against an already-running stack
 	@test -d e2e/node_modules || { echo "e2e/node_modules missing — run 'make e2e-install' first"; exit 1; }
-	@set -a; [ -f .env.e2e ] && . ./.env.e2e; set +a; \
+	@set -a; [ -f e2e/.env ] && . ./e2e/.env; set +a; \
 		cd e2e && pnpm test
 
 .PHONY: e2e
