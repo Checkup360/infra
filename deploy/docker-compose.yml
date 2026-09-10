@@ -87,6 +87,18 @@ services:
     expose:
       - "80"
 
+  dozzle:
+    image: amir20/dozzle:latest
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      DOZZLE_BASE: /logs
+      DOZZLE_AUTH_PROVIDER: forward-proxy
+      DOZZLE_ENABLE_ACTIONS: "false"
+    expose:
+      - "8080"
+
   caddy:
     image: caddy:latest
     restart: unless-stopped
@@ -100,6 +112,8 @@ services:
       backoffice:
         condition: service_started
       cms:
+        condition: service_started
+      dozzle:
         condition: service_started
     ports:
       - "80:80"

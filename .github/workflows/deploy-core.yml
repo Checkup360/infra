@@ -30,8 +30,16 @@ jobs:
     environment: ${{ inputs.environment }}
     steps:
       - uses: actions/checkout@v4
+      - name: Copy deployment files
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.DEPLOY_SERVER_HOST }}
+          username: ${{ secrets.DEPLOY_SSH_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          source: "deploy/docker-compose.yml,deploy/Caddyfile"
+          target: "/opt/app/deploy/${{ inputs.environment }}"
+          strip_components: 1
       - name: Deploy
-          # using v1.2.5
         uses: appleboy/ssh-action@v1.2.5
         env:
           ENV_FILE: ${{ secrets.ENV_FILE }}
@@ -58,7 +66,8 @@ jobs:
             echo "$ORG_PAT" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
             cd /opt/app/deploy/${{ inputs.environment }}
             docker compose pull || exit 1
-            docker compose up -d
+            docker compose up -d --remove-orphans
+            docker compose exec -w /etc/caddy caddy caddy reload || true
       - name: Verify deployment
         run: |
           for i in $(seq 1 10); do

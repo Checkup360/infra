@@ -5,6 +5,7 @@
 (config_js) {
     handle /config.js {
         header Content-Type "application/javascript"
+        header Cache-Control "no-cache, no-store, must-revalidate"
         respond `window.__CONFIG__ = { 
             apiOrigin: "https://{$API_HOST}", 
             webOrigin: "https://{$WEB_HOST}",
@@ -32,6 +33,16 @@
 
 {$BACKOFFICE_HOST} {
     import config_js
+    handle /logs* {
+        forward_auth backend:8000 {
+            uri /auth/verify-sysadmin
+            copy_headers Remote-User Remote-Email
+        }
+        reverse_proxy dozzle:8080 {
+            header_down -X-Frame-Options
+            header_down Content-Security-Policy "frame-ancestors 'self';"
+        }
+    }
     handle {
         reverse_proxy backoffice:80
     }
