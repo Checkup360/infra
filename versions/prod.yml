@@ -1,4 +1,4 @@
-backend: v0.3
-frontends: v0.5
-cms: v0.1.5
-engine: v0.0.1
+backend: v0.3.1
+frontends: v0.5.1
+cms: v0.1.6
+engine: v0.0.2
