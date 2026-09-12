@@ -30,51 +30,35 @@ jobs:
     environment: ${{ inputs.environment }}
     steps:
       - uses: actions/checkout@v4
-      - name: Copy deployment files
-        uses: appleboy/scp-action@v0.1.7
+
+      - name: Setup SSH Agent
+        uses: webfactory/ssh-agent@v0.9.0
         with:
-          host: ${{ secrets.DEPLOY_SERVER_HOST }}
-          username: ${{ secrets.DEPLOY_SSH_USER }}
-          key: ${{ secrets.DEPLOY_SSH_KEY }}
-          source: "deploy/docker-compose.yml,deploy/Caddyfile"
-          target: "/opt/app/deploy/${{ inputs.environment }}"
-          strip_components: 1
-      - name: Deploy
-        uses: appleboy/ssh-action@v1.2.5
+          ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
+
+      - name: Install Ansible
+        run: pipx install ansible-core
+
+      - name: Create Vault password file
+        run: echo "${{ secrets.ANSIBLE_VAULT_PASSWORD }}" > /tmp/.vault_pass
+
+      - name: Run Ansible Deploy
+        run: |
+          ansible-playbook -i ansible/inventory/hosts.yml ansible/deploy.yml \
+            -l ${{ inputs.environment }} \
+            --vault-password-file /tmp/.vault_pass \
+            -e "backend_version=${{ inputs.backend_version }}" \
+            -e "frontends_version=${{ inputs.frontends_version }}" \
+            -e "cms_version=${{ inputs.cms_version }}" \
+            -e "engine_version=${{ inputs.engine_version }}"
         env:
-          ENV_FILE: ${{ secrets.ENV_FILE }}
-          BACKEND_VERSION: ${{ inputs.backend_version }}
-          FRONTENDS_VERSION: ${{ inputs.frontends_version }}
-          CMS_VERSION: ${{ inputs.cms_version }}
-          ENGINE_VERSION: ${{ inputs.engine_version }}
+          ANSIBLE_CONFIG: "ansible/ansible.cfg"
+          DEPLOY_SERVER_HOST: ${{ secrets.DEPLOY_SERVER_HOST }}
+          DEPLOY_SSH_USER: ${{ secrets.DEPLOY_SSH_USER }}
           ORG_PAT: ${{ secrets.ORG_PAT }}
           GITHUB_ACTOR: ${{ github.actor }}
-        with:
-          host: ${{ secrets.DEPLOY_SERVER_HOST }}
-          username: ${{ secrets.DEPLOY_SSH_USER }}
-          key: ${{ secrets.DEPLOY_SSH_KEY }}
-          envs: ENV_FILE,BACKEND_VERSION,FRONTENDS_VERSION,CMS_VERSION,ENGINE_VERSION,ORG_PAT,GITHUB_ACTOR
-          script: |
-            {
-              echo "$ENV_FILE"
-              echo "IMAGE_REGISTRY=ghcr.io/checkup360"
-              echo "BACKEND_VERSION=$BACKEND_VERSION"
-              echo "FRONTENDS_VERSION=$FRONTENDS_VERSION"
-              echo "CMS_VERSION=$CMS_VERSION"
-              echo "ENGINE_VERSION=$ENGINE_VERSION"
-            } > /opt/app/deploy/${{ inputs.environment }}/.env
-            echo "$ORG_PAT" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
-            cd /opt/app/deploy/${{ inputs.environment }}
-            docker compose pull || exit 1
-            docker compose up -d --remove-orphans
-            docker compose exec -w /etc/caddy caddy caddy reload || true
-      - name: Verify deployment
-        run: |
-          for i in $(seq 1 10); do
-            if curl -sf https://${{ secrets.API_HOST }}/docs > /dev/null; then
-              echo "Deployment verified successfully"
-              exit 0
-            fi
-            sleep 3
-          done
-          exit 1
+          ANSIBLE_HOST_KEY_CHECKING: "False"
+
+      - name: Cleanup Vault password file
+        if: always()
+        run: rm -f /tmp/.vault_pass

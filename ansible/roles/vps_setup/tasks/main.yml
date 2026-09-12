@@ -1,0 +1,74 @@
+---
+- name: Update APT cache and upgrade system packages
+  ansible.builtin.apt:
+    update_cache: yes
+    upgrade: dist
+    cache_valid_time: 3600
+
+- name: Install required packages (Docker, Compose, UFW, curl)
+  ansible.builtin.apt:
+    name:
+      - docker.io
+      - docker-compose-v2
+      - curl
+      - ufw
+    state: present
+
+- name: Configure Docker daemon log rotation (/etc/docker/daemon.json)
+  ansible.builtin.copy:
+    dest: /etc/docker/daemon.json
+    content: |
+      {
+        "log-driver": "json-file",
+        "log-opts": {
+          "max-size": "20m",
+          "max-file": "3"
+        }
+      }
+    mode: "0644"
+  notify: Restart Docker
+
+- name: Ensure Docker service is enabled and running
+  ansible.builtin.systemd:
+    name: docker
+    enabled: yes
+    state: started
+
+- name: Allow OpenSSH in UFW
+  community.general.ufw:
+    rule: allow
+    name: OpenSSH
+
+- name: Allow HTTP (port 80)
+  community.general.ufw:
+    rule: allow
+    port: "80"
+    proto: tcp
+
+- name: Allow HTTPS (port 443 TCP)
+  community.general.ufw:
+    rule: allow
+    port: "443"
+    proto: tcp
+
+- name: Allow HTTPS (port 443 UDP for Caddy HTTP/3)
+  community.general.ufw:
+    rule: allow
+    port: "443"
+    proto: udp
+
+- name: Enable UFW firewall with default incoming deny
+  community.general.ufw:
+    state: enabled
+    default: deny
+    direction: incoming
+
+- name: Create deployment directory for target environment
+  ansible.builtin.file:
+    path: "/opt/app/deploy/{{ target_env }}"
+    state: directory
+    mode: "0755"
+
+- name: Remove unused packages
+  ansible.builtin.apt:
+    autoremove: yes

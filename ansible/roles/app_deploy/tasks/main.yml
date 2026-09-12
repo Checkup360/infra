@@ -1,0 +1,61 @@
+---
+- name: Ensure deployment directory exists
+  ansible.builtin.file:
+    path: "/opt/app/deploy/{{ target_env }}"
+    state: directory
+    mode: "0755"
+
+- name: Copy docker-compose.yml to server
+  ansible.builtin.copy:
+    src: docker-compose.yml
+    dest: "/opt/app/deploy/{{ target_env }}/docker-compose.yml"
+    mode: "0644"
+
+- name: Copy Caddyfile to server
+  ansible.builtin.copy:
+    src: Caddyfile
+    dest: "/opt/app/deploy/{{ target_env }}/Caddyfile"
+    mode: "0644"
+  notify: Reload Caddy
+
+- name: Render .env file from template
+  ansible.builtin.template:
+    src: env.j2
+    dest: "/opt/app/deploy/{{ target_env }}/.env"
+    mode: "0600"
+
+- name: Log in to GitHub Container Registry (GHCR)
+  ansible.builtin.command:
+    cmd: "docker login ghcr.io -u {{ github_actor | default(lookup('env', 'GITHUB_ACTOR')) }} --password-stdin"
+    stdin: "{{ org_pat | default(lookup('env', 'ORG_PAT')) }}"
+  no_log: true
+  changed_when: false
+
+- name: Pull updated container images (docker compose pull)
+  ansible.builtin.command:
+    cmd: "docker compose pull"
+    chdir: "/opt/app/deploy/{{ target_env }}"
+
+- name: Start or update services (docker compose up -d)
+  ansible.builtin.command:
+    cmd: "docker compose up -d --remove-orphans"
+    chdir: "/opt/app/deploy/{{ target_env }}"
+
+- name: Apply any pending handlers (e.g. reload Caddy if config changed)
+  ansible.builtin.meta: flush_handlers
+
+- name: Verify deployment health (check API Docs endpoint)
+  ansible.builtin.uri:
+    url: "https://{{ api_host }}/docs"
+    status_code: 200
+  register: health_check
+  until: (health_check.status | default(0)) == 200
+  retries: 10
+  delay: 3
+  delegate_to: localhost
+  become: false
+
+- name: Prune unused Docker images older than 7 days
+  ansible.builtin.command:
+    cmd: "docker image prune -af --filter until=168h"
+  changed_when: false

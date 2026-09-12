@@ -1,0 +1,7 @@
+---
+- name: Deploy Checkup360 application
+  hosts: all
+  become: true
+  gather_facts: false
+  roles:
+    - app_deploy

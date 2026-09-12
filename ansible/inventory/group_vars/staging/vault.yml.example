@@ -1,0 +1,15 @@
+# Staging secrets template.
+# Usage:
+# 1. Copy this file as vault.yml
+# 2. Fill in the real values from your current ENV_FILE
+# 3. Encrypt it with:
+#    ansible-vault encrypt ansible/inventory/group_vars/staging/vault.yml
+
+vault_postgres_password: "super-secure-staging-password"
+vault_auth_secret: "backend-auth-jwt-secret-key-32-chars"
+vault_google_client_id: "google-client-id.apps.googleusercontent.com"
+vault_google_client_secret: "google-client-secret"
+vault_payload_secret: "cms-payload-secret-key"
+vault_superuser_password: "InitialSuperuserPassword123!"
+vault_smtp_user: "smtp_user"
+vault_smtp_password: "smtp_password"

@@ -1,0 +1,23 @@
+# Staging configuration variables
+target_env: staging
+postgres_user: "postgres"
+postgres_db: "appdb"
+
+# Domain names and hostnames
+api_host: "api.checkup360-staging.duckdns.org"
+web_host: "checkup360-staging.duckdns.org"
+dashboard_host: "dashboard.checkup360-staging.duckdns.org"
+backoffice_host: "backoffice.checkup360-staging.duckdns.org"
+cms_host: "cms.checkup360-staging.duckdns.org"
+caddy_email: "team.checkup360@gmail.com"
+
+# Computed origins for CORS and frontend
+public_web_origin: "https://{{ web_host }}"
+cors_allowed_origins: "https://{{ web_host }},https://{{ dashboard_host }},https://{{ backoffice_host }},https://{{ cms_host }}"
+
+# Backend and service parameters
+superuser_email: "team.checkup360@gmail.com"
+seed_overwrite: "false"
+smtp_host: "smtp.gmail.com"
+smtp_port: 587
+image_registry: "ghcr.io/checkup360"

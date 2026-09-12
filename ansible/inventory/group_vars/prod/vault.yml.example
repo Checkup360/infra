@@ -1,0 +1,15 @@
+# Production secrets template.
+# Usage:
+# 1. Copy this file as vault.yml
+# 2. Fill in the real values from your current production ENV_FILE
+# 3. Encrypt it with:
+#    ansible-vault encrypt ansible/inventory/group_vars/prod/vault.yml
+
+vault_postgres_password: "super-secure-prod-password"
+vault_auth_secret: "backend-auth-jwt-secret-key-32-chars-prod"
+vault_google_client_id: "google-client-id-prod.apps.googleusercontent.com"
+vault_google_client_secret: "google-client-secret-prod"
+vault_payload_secret: "cms-payload-secret-key-prod"
+vault_superuser_password: "ProdSuperuserPassword123!"
+vault_smtp_user: "smtp_user_prod"
+vault_smtp_password: "smtp_password_prod"

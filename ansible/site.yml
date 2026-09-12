@@ -1,0 +1,7 @@
+---
+- name: VPS provisioning and setup
+  hosts: all
+  become: true
+  gather_facts: true
+  roles:
+    - vps_setup

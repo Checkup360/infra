@@ -1,0 +1,6 @@
+---
+- name: Reload Caddy
+  ansible.builtin.command:
+    cmd: "docker compose exec -w /etc/caddy caddy caddy reload"
+    chdir: "/opt/app/deploy/{{ target_env }}"
+  failed_when: false
