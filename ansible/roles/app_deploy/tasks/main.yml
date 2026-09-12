@@ -1,9 +1,12 @@
 ---
-- name: Ensure deployment directory exists
+- name: Ensure deployment directory and subdirectories exist
   ansible.builtin.file:
-    path: "/opt/app/deploy/{{ target_env }}"
+    path: "{{ item }}"
     state: directory
     mode: "0755"
+  loop:
+    - "/opt/app/deploy/{{ target_env }}"
+    - "/opt/app/deploy/{{ target_env }}/caddy"
 
 - name: Copy docker-compose.yml to server
   ansible.builtin.copy:
@@ -14,7 +17,7 @@
 - name: Copy Caddyfile to server
   ansible.builtin.copy:
     src: Caddyfile
-    dest: "/opt/app/deploy/{{ target_env }}/Caddyfile"
+    dest: "/opt/app/deploy/{{ target_env }}/caddy/Caddyfile"
     mode: "0644"
   notify: Reload Caddy
 
