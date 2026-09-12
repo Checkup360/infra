@@ -40,7 +40,9 @@ jobs:
         run: pipx install ansible-core
 
       - name: Create Vault password file
-        run: echo "${{ secrets.ANSIBLE_VAULT_PASSWORD }}" > /tmp/.vault_pass
+        env:
+          VAULT_PASSWORD: ${{ secrets.ANSIBLE_VAULT_PASSWORD }}
+        run: printf '%s' "$VAULT_PASSWORD" > /tmp/.vault_pass
 
       - name: Run Ansible Deploy
         run: |
