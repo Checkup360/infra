@@ -4,6 +4,7 @@ on:
     branches: [main]
     paths:
       - 'versions/prod.yml'
+  workflow_dispatch:
 permissions:
   contents: read
   packages: read
