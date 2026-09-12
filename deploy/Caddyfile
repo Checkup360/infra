@@ -1,62 +1,65 @@
 {
-    email {$CADDY_EMAIL}
+	email {$CADDY_EMAIL}
 }
 
 (config_js) {
-    handle /config.js {
-        header Content-Type "application/javascript"
-        header Cache-Control "no-cache, no-store, must-revalidate"
-        respond `window.__CONFIG__ = { 
+	handle /config.js {
+		header Content-Type "application/javascript"
+		header Cache-Control "no-cache, no-store, must-revalidate"
+		respond `window.__CONFIG__ = { 
             apiOrigin: "https://{$API_HOST}", 
             webOrigin: "https://{$WEB_HOST}",
             dashboardOrigin: "https://{$DASHBOARD_HOST}",
             backofficeOrigin: "https://{$BACKOFFICE_HOST}",
             cmsOrigin: "https://{$CMS_HOST}"
         };`
-    }
+	}
 }
 
 :80 {
-    respond /healthz "healthy" 200
+	respond /healthz "healthy" 200
 }
 
 {$API_HOST} {
-    reverse_proxy backend:8000
+	reverse_proxy backend:8000
 }
 
 {$DASHBOARD_HOST} {
-    import config_js
-    handle {
-        reverse_proxy dashboard:80
-    }
+	import config_js
+	handle {
+		reverse_proxy dashboard:80
+	}
 }
 
 {$BACKOFFICE_HOST} {
-    import config_js
-    handle /logs* {
-        forward_auth backend:8000 {
-            uri /auth/verify-sysadmin
-            copy_headers Remote-User Remote-Email
-        }
-        reverse_proxy dozzle:8080 {
-            header_down -X-Frame-Options
-            header_down Content-Security-Policy "frame-ancestors 'self';"
-        }
-    }
-    handle {
-        reverse_proxy backoffice:80
-    }
+	import config_js
+	handle /dozzle/assets/* {
+		reverse_proxy dozzle:8080
+	}
+	handle /dozzle* {
+		forward_auth backend:8000 {
+			uri /auth/verify-sysadmin
+			copy_headers Remote-User Remote-Email
+		}
+		reverse_proxy dozzle:8080 {
+			header_down -X-Frame-Options
+			header_down Content-Security-Policy "frame-ancestors 'self';"
+		}
+	}
+	handle {
+		reverse_proxy backoffice:80
+	}
 }
 
 {$WEB_HOST} {
-    import config_js
-    handle {
-        reverse_proxy web:80
-    }
+	import config_js
+	handle {
+		reverse_proxy web:80
+	}
 }
 
 {$CMS_HOST} {
-    handle {
-        reverse_proxy cms:3000
-    }
+	handle {
+		reverse_proxy cms:3000
+	}
 }
