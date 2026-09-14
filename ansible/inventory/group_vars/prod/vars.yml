@@ -21,3 +21,7 @@ seed_overwrite: "false"
 smtp_host: "smtp.gmail.com"
 smtp_port: 587
 image_registry: "ghcr.io/checkup360"
+
+# Storage
+upload_dir: "/app/uploads"
+

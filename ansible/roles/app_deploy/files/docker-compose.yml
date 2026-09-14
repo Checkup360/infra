@@ -52,8 +52,11 @@ services:
       SMTP_PORT: ${SMTP_PORT}
       SMTP_USER: ${SMTP_USER}
       SMTP_PASSWORD: ${SMTP_PASSWORD}
+      UPLOAD_DIR: ${UPLOAD_DIR:-/app/uploads}
     expose:
       - "8000"
+    volumes:
+      - backend_uploads:/app/uploads
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/').status==200 else 1)\""]
       interval: 3s
@@ -161,3 +164,4 @@ volumes:
   caddy_data:
   caddy_config:
   cms_media:
+  backend_uploads:

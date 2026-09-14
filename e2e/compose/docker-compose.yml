@@ -50,8 +50,11 @@ services:
       SEED_ORG_NAME: ${SEED_ORG_NAME:-}
       SEED_OVERWRITE: ${SEED_OVERWRITE:-false}
       ENGINE_API_URL: http://engine:8001
+      UPLOAD_DIR: ${UPLOAD_DIR:-/app/uploads}
     ports:
       - "${BACKEND_HOST_PORT:-8000}:8000"
+    volumes:
+      - backend_e2e_uploads:/app/uploads
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/').status==200 else 1)\""]
       interval: 3s
@@ -99,3 +102,4 @@ services:
 
 volumes:
   postgres_e2e_data:
+  backend_e2e_uploads:
