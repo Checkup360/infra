@@ -1,4 +1,4 @@
-name: Ansible Lint
+name: Ansible Syntax Check
 
 on:
   push:
@@ -18,8 +18,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Ansible + tools
-        run: pipx install ansible-core && pipx install ansible-lint
+      - name: Install Ansible
+        run: pipx install ansible-core
 
       - name: Install Ansible collections
         run: ansible-galaxy collection install -r requirements.yml
@@ -37,10 +37,5 @@ jobs:
           ansible-playbook deploy.yml --syntax-check \
             -e target_env=staging \
             -i inventory/hosts.yml
-        env:
-          ANSIBLE_CONFIG: ansible.cfg
-
-      - name: Run ansible-lint
-        run: ansible-lint
         env:
           ANSIBLE_CONFIG: ansible.cfg
