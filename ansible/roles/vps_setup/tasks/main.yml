@@ -1,7 +1,7 @@
 ---
 - name: Update APT cache and upgrade system packages
   ansible.builtin.apt:
-    update_cache: yes
+    update_cache: true
     upgrade: dist
     cache_valid_time: 3600
 
@@ -31,7 +31,7 @@
 - name: Ensure Docker service is enabled and running
   ansible.builtin.systemd:
     name: docker
-    enabled: yes
+    enabled: true
     state: started
 
 - name: Allow OpenSSH in UFW
@@ -71,4 +71,4 @@
 
 - name: Remove unused packages
   ansible.builtin.apt:
-    autoremove: yes
+    autoremove: true

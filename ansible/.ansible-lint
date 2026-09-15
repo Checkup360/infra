@@ -1,10 +1,14 @@
+# https://ansible.readthedocs.io/projects/lint/configuring/
 profile: moderate
 
 warn_list:
-  - yaml[line-length]
+  - yaml[line-length]   # líneas largas en templates son inevitables
 
 skip_list:
-  - fqcn[action-core]
+  - fqcn[action-core]           # no forzar FQCN en módulos builtin
+  - var-naming[no-role-prefix]  # register vars locales no necesitan prefijo de role
 
 exclude_paths:
   - collections/
+  - inventory/group_vars/staging/vault.yml
+  - inventory/group_vars/prod/vault.yml

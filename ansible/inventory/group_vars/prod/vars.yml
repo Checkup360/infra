@@ -25,3 +25,6 @@ image_registry: "ghcr.io/checkup360"
 # Storage
 upload_dir: "/app/uploads"
 
+# Infrastructure image versions
+caddy_version: "2.11.4"
+dozzle_version: "v11.1.0"
