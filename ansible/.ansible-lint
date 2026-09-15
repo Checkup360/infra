@@ -1,0 +1,10 @@
+profile: moderate
+
+warn_list:
+  - yaml[line-length]
+
+skip_list:
+  - fqcn[action-core]
+
+exclude_paths:
+  - collections/
