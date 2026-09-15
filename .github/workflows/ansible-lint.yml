@@ -41,6 +41,6 @@ jobs:
           ANSIBLE_CONFIG: ansible.cfg
 
       - name: Run ansible-lint
-        run: ansible-lint --offline
+        run: ansible-lint
         env:
           ANSIBLE_CONFIG: ansible.cfg
