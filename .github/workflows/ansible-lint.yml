@@ -33,6 +33,7 @@ jobs:
             -i inventory/hosts.yml
         env:
           ANSIBLE_CONFIG: ansible.cfg
+          ANSIBLE_COLLECTIONS_PATH: ./collections
 
       - name: Syntax check — deploy.yml
         run: |
@@ -41,8 +42,10 @@ jobs:
             -i inventory/hosts.yml
         env:
           ANSIBLE_CONFIG: ansible.cfg
+          ANSIBLE_COLLECTIONS_PATH: ./collections
 
       - name: Run ansible-lint
         run: ansible-lint --offline
         env:
           ANSIBLE_CONFIG: ansible.cfg
+          ANSIBLE_COLLECTIONS_PATH: ./collections
