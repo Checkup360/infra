@@ -23,8 +23,6 @@ jobs:
 
       - name: Install Ansible collections
         run: ansible-galaxy collection install -r requirements.yml
-        env:
-          ANSIBLE_CONFIG: ansible.cfg
 
       - name: Syntax check — site.yml
         run: |
@@ -33,7 +31,6 @@ jobs:
             -i inventory/hosts.yml
         env:
           ANSIBLE_CONFIG: ansible.cfg
-          ANSIBLE_COLLECTIONS_PATH: ./collections
 
       - name: Syntax check — deploy.yml
         run: |
@@ -42,10 +39,8 @@ jobs:
             -i inventory/hosts.yml
         env:
           ANSIBLE_CONFIG: ansible.cfg
-          ANSIBLE_COLLECTIONS_PATH: ./collections
 
       - name: Run ansible-lint
         run: ansible-lint --offline
         env:
           ANSIBLE_CONFIG: ansible.cfg
-          ANSIBLE_COLLECTIONS_PATH: ./collections
