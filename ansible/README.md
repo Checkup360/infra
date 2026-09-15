@@ -1,6 +1,6 @@
 # Checkup360 Infrastructure with Ansible
 
-This directory contains the configuration to provision servers and perform automated deployments of Checkup360 using **Ansible**.
+This directory contains the configuration to provision servers and perform automated deployments of Checkup360 using **Ansible**. All commands below are run from the `infra/` repository root.
 
 ---
 
