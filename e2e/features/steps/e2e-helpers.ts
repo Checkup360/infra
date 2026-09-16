@@ -16,6 +16,10 @@ export function backofficeOrigin(): string {
   return process.env.PUBLIC_BACKOFFICE_ORIGIN ?? "http://localhost:5175"
 }
 
+export function cmsOrigin(): string {
+  return process.env.PUBLIC_CMS_ORIGIN ?? "http://localhost:3000"
+}
+
 export function portalOrigins(): string[] {
   return [webOrigin(), dashboardOrigin(), backofficeOrigin()]
 }

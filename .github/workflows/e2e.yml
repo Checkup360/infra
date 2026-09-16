@@ -123,6 +123,14 @@ jobs:
           path: engine
           token: ${{ secrets.ORG_PAT }}
 
+      - name: Checkout cms (build mode)
+        if: steps.mode.outputs.is_pull == 'false'
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/cms
+          path: cms
+          token: ${{ secrets.ORG_PAT }}
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -152,7 +160,7 @@ jobs:
             echo "PUBLIC_WEB_ORIGIN=http://localhost:5173"
             echo "PUBLIC_DASHBOARD_ORIGIN=http://localhost:5174"
             echo "PUBLIC_BACKOFFICE_ORIGIN=http://localhost:5175"
-            echo "CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:5174,http://localhost:5175"
+            echo "CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:5174,http://localhost:5175,http://localhost:3000"
             echo "IMAGE_REGISTRY=ghcr.io/checkup360"
             echo "BACKEND_VERSION=${{ inputs.backend_version || 'latest' }}"
             echo "FRONTENDS_VERSION=${{ inputs.frontends_version || 'latest' }}"
@@ -160,6 +168,9 @@ jobs:
             echo "ENGINE_VERSION=${{ inputs.engine_version || 'latest' }}"
             echo "ENGINE_HOST_PORT=8001"
             echo "ENGINE_API_URL=http://engine:8001"
+            echo "PAYLOAD_SECRET=ci-insecure-payload-secret"
+            echo "CMS_HOST_PORT=3000"
+            echo "PUBLIC_CMS_ORIGIN=http://localhost:3000"
           } >> e2e/.env
 
       - name: Bring up the stack (pull mode)
@@ -168,7 +179,7 @@ jobs:
         run: |
           docker compose --project-directory . -f $COMPOSE_FILE_BASE --env-file e2e/.env pull
           docker compose --project-directory . -f $COMPOSE_FILE_BASE --env-file e2e/.env up -d \
-            db engine backend web dashboard backoffice
+            db engine backend web dashboard backoffice cms
 
       - name: Bring up the stack (build mode)
         if: steps.mode.outputs.is_pull == 'false'
@@ -176,7 +187,7 @@ jobs:
         run: |
           docker compose --project-directory . -f $COMPOSE_FILE_BASE -f $COMPOSE_FILE_LOCAL -f $COMPOSE_FILE_CI_CACHE --env-file e2e/.env build
           docker compose --project-directory . -f $COMPOSE_FILE_BASE -f $COMPOSE_FILE_LOCAL -f $COMPOSE_FILE_CI_CACHE --env-file e2e/.env up -d \
-            db engine backend web dashboard backoffice
+            db engine backend web dashboard backoffice cms
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -213,6 +224,7 @@ jobs:
           PUBLIC_WEB_ORIGIN: http://localhost:5173
           PUBLIC_DASHBOARD_ORIGIN: http://localhost:5174
           PUBLIC_BACKOFFICE_ORIGIN: http://localhost:5175
+          PUBLIC_CMS_ORIGIN: http://localhost:3000
           SUPERUSER_EMAIL: e2e-admin@example.com
           SUPERUSER_PASSWORD: E2E-Admin-123!
           CI: "true"

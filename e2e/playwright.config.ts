@@ -7,6 +7,7 @@ const PUBLIC_DASHBOARD_ORIGIN =
 const PUBLIC_BACKOFFICE_ORIGIN =
   process.env.PUBLIC_BACKOFFICE_ORIGIN ?? "http://localhost:5175"
 const PUBLIC_API_ORIGIN = process.env.PUBLIC_API_ORIGIN ?? "http://localhost:8000"
+const PUBLIC_CMS_ORIGIN = process.env.PUBLIC_CMS_ORIGIN ?? "http://localhost:3000"
 
 const bddTestDir = defineBddConfig({
   features: "features/**/*.feature",
@@ -46,5 +47,6 @@ export default defineConfig({
     webOrigin: PUBLIC_WEB_ORIGIN,
     dashboardOrigin: PUBLIC_DASHBOARD_ORIGIN,
     backofficeOrigin: PUBLIC_BACKOFFICE_ORIGIN,
+    cmsOrigin: PUBLIC_CMS_ORIGIN,
   },
 })

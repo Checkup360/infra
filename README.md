@@ -37,7 +37,7 @@ make db-up
 
 ## End-to-End (E2E) Testing with Playwright
 
-The E2E suite launches the complete containerized application stack (`db`, `engine`, `backend`, `web`, `dashboard`, `backoffice`) and runs automated browser tests.
+The E2E suite launches the complete containerized application stack (`db`, `engine`, `backend`, `web`, `dashboard`, `backoffice`, `cms`) and runs automated browser tests.
 
 ### 1. Initial One-time Setup
 

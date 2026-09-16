@@ -33,3 +33,10 @@ services:
         - type=gha,scope=e2e-front-backoffice
       cache_to:
         - type=gha,mode=max,scope=e2e-front-backoffice
+
+  cms:
+    build:
+      cache_from:
+        - type=gha,scope=e2e-cms
+      cache_to:
+        - type=gha,mode=max,scope=e2e-cms

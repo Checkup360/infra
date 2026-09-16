@@ -37,3 +37,9 @@ services:
       args:
         APP: backoffice
         VITE_PUBLIC_API_ORIGIN: ${PUBLIC_API_ORIGIN:-http://localhost:8000}
+
+  cms:
+    image: checkup360/cms:local
+    build:
+      context: ../cms
+      dockerfile: Dockerfile
