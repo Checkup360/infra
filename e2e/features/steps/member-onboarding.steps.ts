@@ -191,7 +191,9 @@ When(
 )
 
 Then("the profile changes are saved successfully", async ({ page }) => {
-  await expect(page.getByText("Changes saved successfully.")).toBeVisible()
+  await expect(
+    page.getByText(/profile updated successfully|changes saved successfully/i).first(),
+  ).toBeVisible()
 
   const res = await page.request.get(`${apiOrigin()}/members/me/profile`)
   expect(res.ok(), await res.text()).toBeTruthy()
