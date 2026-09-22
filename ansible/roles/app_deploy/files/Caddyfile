@@ -16,6 +16,19 @@
 	}
 }
 
+(api_proxy) {
+	handle_path /api/* {
+		reverse_proxy backend:8000 {
+			header_up X-Forwarded-Prefix /api
+		}
+	}
+}
+
+(frontend_common) {
+	import config_js
+	import api_proxy
+}
+
 :80 {
 	respond /healthz "healthy" 200
 }
@@ -25,14 +38,14 @@
 }
 
 {$DASHBOARD_HOST} {
-	import config_js
+	import frontend_common
 	handle {
 		reverse_proxy dashboard:80
 	}
 }
 
 {$BACKOFFICE_HOST} {
-	import config_js
+	import frontend_common
 	handle /dozzle/assets/* {
 		reverse_proxy dozzle:8080
 	}
@@ -52,7 +65,7 @@
 }
 
 {$WEB_HOST} {
-	import config_js
+	import frontend_common
 	handle {
 		reverse_proxy web:80
 	}
