@@ -279,3 +279,23 @@ Then(
   },
 )
 
+When("they submit the onboarding form expecting failure", async ({ page }) => {
+  const submitPromise = page.waitForResponse(
+    (response) =>
+      response.url().includes("/members/me/details") &&
+      response.request().method() === "POST",
+  )
+  const submitBtn = page.getByRole("button", { name: /complete|submit/i }).first()
+  await submitBtn.click()
+  const res = await submitPromise
+  expect(res.status()).toBe(422)
+})
+
+Then("the onboarding submission shows an underage validation error", async ({ page }) => {
+  await expect(
+    page.getByText(/18 years old|underage/i).first(),
+  ).toBeVisible({ timeout: 10000 })
+  expect(page.url()).toContain("/onboarding")
+})
+
+

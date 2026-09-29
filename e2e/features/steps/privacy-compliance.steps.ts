@@ -2,6 +2,8 @@ import { expect } from "@playwright/test"
 import { Given, When, Then } from "./fixtures"
 import {
   apiOrigin,
+  apiSignInAsSuperuser,
+  backofficeOrigin,
   createAndRedeemOrgInvite,
   createTestOrganization,
   dashboardOrigin,
@@ -349,3 +351,50 @@ Then(
 Then("the compliance audit trail table is visible", async ({ page }) => {
   await expect(page.getByText("Audit Trail").first()).toBeVisible({ timeout: 10000 })
 })
+
+// ---------------------------------------------------------------------------
+// Scenario 6: PHQ-9 Mental Health Crisis Support Alert
+// ---------------------------------------------------------------------------
+When("the member navigates to the mood assessment study form", async ({ page }) => {
+  await page.goto(`${webOrigin()}/forms/studies?form=mood`)
+  await page.waitForURL((url) => url.pathname === "/forms/studies")
+})
+
+When("they indicate thoughts of self-harm in the questionnaire", async ({ page }) => {
+  const option = page.locator("#self_harm_thoughts-1")
+  await expect(option).toBeVisible({ timeout: 10000 })
+  await option.click()
+})
+
+Then("the confidential crisis support helpline alert is displayed", async ({ page }) => {
+  await expect(
+    page.getByText(/confidential crisis support & immediate assistance/i).first(),
+  ).toBeVisible({ timeout: 10000 })
+})
+
+Then("the helpline alert contains emergency contact numbers", async ({ page }) => {
+  await expect(page.getByText("135").first()).toBeVisible()
+  await expect(page.getByText("0800-999-0091").first()).toBeVisible()
+})
+
+// ---------------------------------------------------------------------------
+// Scenario 7: Global Compliance Audit Logs in Backoffice
+// ---------------------------------------------------------------------------
+Given("the sysadmin is signed in to the backoffice audit logs page", async ({ page }) => {
+  await apiSignInAsSuperuser(page, "audit logs scenario")
+  await page.goto(`${backofficeOrigin()}/audit-logs`)
+  await page.waitForURL((url) => url.origin === backofficeOrigin() && url.pathname === "/audit-logs")
+})
+
+Then("they see the system audit trail heading", async ({ page }) => {
+  await expect(
+    page.getByRole("heading", { name: /system audit trail/i }).first(),
+  ).toBeVisible({ timeout: 10000 })
+})
+
+Then("the audit logs filter for accepted consents is available", async ({ page }) => {
+  await expect(
+    page.getByRole("button", { name: /^accepted$/i }).first(),
+  ).toBeVisible({ timeout: 10000 })
+})
+

@@ -38,3 +38,11 @@ Feature: Member onboarding and profile management
     When they open the profile settings page
     Then the profile form shows first name "Laura", last name "Gomez"
     And the biometrics form shows height "162" and weight "58"
+
+  Scenario: Underage applicant is prevented from completing onboarding
+    Given the member is on the onboarding wizard page
+    When they click get started to begin the wizard
+    And they fill personal details "Tom", "Junior", "+54 11 1234-5678", "2015-05-15", "male"
+    And they fill health details "45", "150", "O+", "Never", "Occasionally", "3-4 times per week"
+    And they submit the onboarding form expecting failure
+    Then the onboarding submission shows an underage validation error

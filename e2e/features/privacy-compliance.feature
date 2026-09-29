@@ -48,3 +48,15 @@ Feature: Privacy, informed consents, and legal compliance
     Then they see the compliance dashboard heading
     And the audit metrics cards display total audit events and accepted consents
     And the compliance audit trail table is visible
+
+  Scenario: Member encountering emotional distress during mood assessment sees crisis support resources
+    Given there is a member with an active form consent for "mood"
+    When the member navigates to the mood assessment study form
+    And they indicate thoughts of self-harm in the questionnaire
+    Then the confidential crisis support helpline alert is displayed
+    And the helpline alert contains emergency contact numbers
+
+  Scenario: Platform sysadmin inspects global compliance audit logs in backoffice
+    Given the sysadmin is signed in to the backoffice audit logs page
+    Then they see the system audit trail heading
+    And the audit logs filter for accepted consents is available
