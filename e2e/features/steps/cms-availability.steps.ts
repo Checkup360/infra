@@ -20,3 +20,15 @@ Then(
     expect(page.url()).toContain(webOrigin())
   },
 )
+
+When("the member opens the health news page", async ({ page }) => {
+  await page.goto(`${webOrigin()}/news`)
+  await page.waitForURL((url) => url.pathname === "/news")
+})
+
+Then("they see the health articles and news heading", async ({ page }) => {
+  await expect(
+    page.getByRole("heading", { name: /health articles & news|health/i }).first(),
+  ).toBeVisible({ timeout: 10000 })
+})
+

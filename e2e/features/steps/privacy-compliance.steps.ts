@@ -103,7 +103,16 @@ Then(
 Given(
   "there is a member with completed onboarding for compliance",
   async ({ page, invitationWorld }) => {
-    const orgId = invitationWorld.organizationId!
+    let orgId = invitationWorld.organizationId
+    if (!orgId) {
+      const org = await createTestOrganization(page, "Compliance Org")
+      orgId = org.id
+      invitationWorld.organizationId = org.id
+      invitationWorld.organizationName = org.name
+      invitationWorld.organizationSlug = org.slug
+    } else {
+      await apiSignInAsSuperuser(page, "compliance member invite")
+    }
     const suffix = uniqueSuffix()
     const email = `e2e-comp-member-${suffix}@example.com`
     const password = `SuperSecure123!${suffix}`
@@ -131,13 +140,13 @@ Given(
     expect(detailsRes.ok(), await detailsRes.text()).toBeTruthy()
 
     await page.request.post(`${apiOrigin()}/consents`, {
-      data: { consent_type: "TERMS_AND_CONDITIONS", document_version: "1.0" },
+      data: { consent_type: "TERMS_AND_CONDITIONS", document_version: "1" },
     })
     await page.request.post(`${apiOrigin()}/consents`, {
-      data: { consent_type: "PRIVACY_POLICY", document_version: "1.0" },
+      data: { consent_type: "PRIVACY_POLICY", document_version: "1" },
     })
     await page.request.post(`${apiOrigin()}/consents`, {
-      data: { consent_type: "HEALTH_DATA_PROCESSING_CONSENT", document_version: "1.0" },
+      data: { consent_type: "HEALTH_DATA_PROCESSING_CONSENT", document_version: "1" },
     })
   },
 )
@@ -217,7 +226,16 @@ Then("their data export archive is downloaded successfully", async ({ page }) =>
 Given(
   "there is a member with an active form consent for {string}",
   async ({ page, invitationWorld }, formType: string) => {
-    const orgId = invitationWorld.organizationId!
+    let orgId = invitationWorld.organizationId
+    if (!orgId) {
+      const org = await createTestOrganization(page, "Compliance Org")
+      orgId = org.id
+      invitationWorld.organizationId = org.id
+      invitationWorld.organizationName = org.name
+      invitationWorld.organizationSlug = org.slug
+    } else {
+      await apiSignInAsSuperuser(page, "compliance form consent invite")
+    }
     const suffix = uniqueSuffix()
     const email = `e2e-revoke-${suffix}@example.com`
     const password = `SuperSecure123!${suffix}`
@@ -244,13 +262,13 @@ Given(
     })
 
     await page.request.post(`${apiOrigin()}/consents`, {
-      data: { consent_type: "TERMS_AND_CONDITIONS", document_version: "1.0" },
+      data: { consent_type: "TERMS_AND_CONDITIONS", document_version: "1" },
     })
     await page.request.post(`${apiOrigin()}/consents`, {
-      data: { consent_type: "PRIVACY_POLICY", document_version: "1.0" },
+      data: { consent_type: "PRIVACY_POLICY", document_version: "1" },
     })
     await page.request.post(`${apiOrigin()}/consents`, {
-      data: { consent_type: "HEALTH_DATA_PROCESSING_CONSENT", document_version: "1.0" },
+      data: { consent_type: "HEALTH_DATA_PROCESSING_CONSENT", document_version: "1" },
     })
     const formConsentRes = await page.request.post(`${apiOrigin()}/consents`, {
       data: { consent_type: "FORM_CONSENT", form_type: formType, document_version: "1" },
