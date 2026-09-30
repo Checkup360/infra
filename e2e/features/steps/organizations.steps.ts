@@ -67,12 +67,15 @@ Given(
 
     await page.goto(`${backofficeOrigin()}/`)
     await page.waitForURL((url) => url.origin === backofficeOrigin())
+    await expect(page.getByRole("heading", { name: "Organizations", level: 1 })).toBeVisible({ timeout: 10000 })
   },
 )
 
 When("they search for {string} in the organization list", async ({ page, invitationWorld }, _targetName: string) => {
   const searchName = invitationWorld.organizationName!
-  await page.getByPlaceholder(/filter by name or slug/i).fill(searchName)
+  const filterInput = page.getByPlaceholder(/filter by name or slug/i)
+  await expect(filterInput).toBeVisible({ timeout: 10000 })
+  await filterInput.fill(searchName)
 })
 
 Then("only {string} is displayed in the list", async ({ page, invitationWorld }, _expectedName: string) => {
@@ -115,12 +118,15 @@ Given(
 
     await page.goto(`${backofficeOrigin()}/`)
     await page.waitForURL((url) => url.origin === backofficeOrigin())
+    await expect(page.getByRole("heading", { name: "Organizations", level: 1 })).toBeVisible({ timeout: 10000 })
   },
 )
 
 When("they click on the organization {string}", async ({ page, invitationWorld }, _name: string) => {
   const orgName = invitationWorld.organizationName!
-  await page.getByPlaceholder(/filter by name or slug/i).fill(orgName)
+  const filterInput = page.getByPlaceholder(/filter by name or slug/i)
+  await expect(filterInput).toBeVisible({ timeout: 10000 })
+  await filterInput.fill(orgName)
   const cell = page.locator("tbody").getByText(orgName).first()
   await expect(cell).toBeVisible({ timeout: 10000 })
   await cell.click()
@@ -151,11 +157,14 @@ Given("there is an organization named {string}", async ({ page, invitationWorld 
 
   await page.goto(`${backofficeOrigin()}/`)
   await page.waitForURL((url) => url.origin === backofficeOrigin())
+  await expect(page.getByRole("heading", { name: "Organizations", level: 1 })).toBeVisible({ timeout: 10000 })
 })
 
 When("they delete the organization {string}", async ({ page, invitationWorld }, _name: string) => {
   const orgName = invitationWorld.organizationName!
-  await page.getByPlaceholder(/filter by name or slug/i).fill(orgName)
+  const filterInput = page.getByPlaceholder(/filter by name or slug/i)
+  await expect(filterInput).toBeVisible({ timeout: 10000 })
+  await filterInput.fill(orgName)
   const row = page.locator("tr", { hasText: orgName })
   await expect(row).toBeVisible({ timeout: 10000 })
   await row.getByRole("button", { name: /delete organization/i }).click()

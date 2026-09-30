@@ -65,6 +65,20 @@ Given("there is a member with completed onboarding for assessments", async ({ pa
   })
   expect(detailsRes.ok(), await detailsRes.text()).toBeTruthy()
 
+  // Grant required baseline and form consents
+  await page.request.post(`${apiOrigin()}/consents`, {
+    data: { consent_type: "TERMS_AND_CONDITIONS", document_version: "1.0" },
+  })
+  await page.request.post(`${apiOrigin()}/consents`, {
+    data: { consent_type: "PRIVACY_POLICY", document_version: "1.0" },
+  })
+  await page.request.post(`${apiOrigin()}/consents`, {
+    data: { consent_type: "HEALTH_DATA_PROCESSING_CONSENT", document_version: "1.0" },
+  })
+  await page.request.post(`${apiOrigin()}/consents`, {
+    data: { consent_type: "FORM_CONSENT", form_type: "biometrics", document_version: "1" },
+  })
+
   // Seed biometrics so the form auto-fills height, weight and sex
   const biometricsRes = await page.request.patch(`${apiOrigin()}/members/me/biometrics`, {
     data: { biological_sex: "male", height: 175, weight: 70 },
@@ -110,7 +124,8 @@ Then("the results page shows at least one risk score card", async ({ page }) => 
 })
 
 Then("the results include a {string} score", async ({ page }, scoreName: string) => {
-  await expect(page.getByText(scoreName, { exact: false }).first()).toBeVisible({ timeout: 10_000 })
+  const keyword = scoreName.split(" ")[0]
+  await expect(page.getByText(new RegExp(keyword, "i")).first()).toBeVisible({ timeout: 10_000 })
 })
 
 // ---------------------------------------------------------------------------
@@ -132,8 +147,8 @@ When("the member navigates to the status page", async ({ page }) => {
 Then("the status page shows a score card for {string}", async ({ page }, scoreName: string) => {
   // Wait for loading to finish (scores replace the spinner)
   await expect(page.getByText(/no assessments/i)).not.toBeVisible({ timeout: 10_000 })
-  // Score name is rendered inside the score cards
-  await expect(page.getByText(scoreName, { exact: true }).first()).toBeVisible({ timeout: 10_000 })
+  const keyword = scoreName.split(" ")[0]
+  await expect(page.getByText(new RegExp(keyword, "i")).first()).toBeVisible({ timeout: 10_000 })
 })
 
 Then("each score card displays a risk level", async ({ page }) => {

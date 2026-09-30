@@ -53,9 +53,8 @@ Given(
 When(
   "they fill biometrics details {string}, {string}",
   async ({ page }, weight: string, height: string) => {
-    const heightInMeters = parseFloat(height) > 10 ? (parseFloat(height) / 100).toString() : height
     await page.getByLabel(/weight/i).fill(weight)
-    await page.getByLabel(/height/i).fill(heightInMeters)
+    await page.getByLabel(/height/i).fill(height)
 
     const nextBtn = page.getByRole("button", { name: /next step|next|continue/i }).first()
     await nextBtn.click()
@@ -65,25 +64,18 @@ When(
 When(
   "they accept the baseline privacy and health data processing agreements",
   async ({ page }) => {
-    const termsCheckbox = page.locator("#accept-terms")
-    if (await termsCheckbox.isVisible()) {
-      if (!(await termsCheckbox.isChecked())) {
-        await termsCheckbox.check()
-      }
+    const terms = page.locator("#accept-terms")
+    await expect(terms).toBeVisible({ timeout: 10000 })
+    if ((await terms.getAttribute("data-state")) !== "checked") {
+      await terms.click()
     }
-
-    const privacyCheckbox = page.locator("#accept-privacy")
-    if (await privacyCheckbox.isVisible()) {
-      if (!(await privacyCheckbox.isChecked())) {
-        await privacyCheckbox.check()
-      }
+    const privacy = page.locator("#accept-privacy")
+    if ((await privacy.getAttribute("data-state")) !== "checked") {
+      await privacy.click()
     }
-
-    const healthCheckbox = page.locator("#accept-health")
-    if (await healthCheckbox.isVisible()) {
-      if (!(await healthCheckbox.isChecked())) {
-        await healthCheckbox.check()
-      }
+    const health = page.locator("#accept-health")
+    if ((await health.getAttribute("data-state")) !== "checked") {
+      await health.click()
     }
   },
 )
@@ -91,19 +83,17 @@ When(
 Then(
   "the member has active consents recorded for terms, privacy, and health processing",
   async ({ page }) => {
-    const res = await page.request.get(`${apiOrigin()}/members/me/consents`)
+    const res = await page.request.get(`${apiOrigin()}/consents/current`)
     expect(res.ok(), await res.text()).toBeTruthy()
     const data = (await res.json()) as {
-      items: Array<{ consent_type: string; revoked_at: string | null }>
+      terms_and_conditions: { id: string } | null
+      privacy_policy: { id: string } | null
+      health_data_processing: { id: string } | null
     }
 
-    const consentTypes = data.items
-      .filter((item) => !item.revoked_at)
-      .map((item) => item.consent_type)
-
-    expect(consentTypes).toContain("TERMS_AND_CONDITIONS")
-    expect(consentTypes).toContain("PRIVACY_POLICY")
-    expect(consentTypes).toContain("HEALTH_DATA_PROCESSING_CONSENT")
+    expect(data.terms_and_conditions).not.toBeNull()
+    expect(data.privacy_policy).not.toBeNull()
+    expect(data.health_data_processing).not.toBeNull()
   },
 )
 
@@ -140,13 +130,13 @@ Given(
     })
     expect(detailsRes.ok(), await detailsRes.text()).toBeTruthy()
 
-    await page.request.post(`${apiOrigin()}/members/me/consents`, {
+    await page.request.post(`${apiOrigin()}/consents`, {
       data: { consent_type: "TERMS_AND_CONDITIONS", document_version: "1.0" },
     })
-    await page.request.post(`${apiOrigin()}/members/me/consents`, {
+    await page.request.post(`${apiOrigin()}/consents`, {
       data: { consent_type: "PRIVACY_POLICY", document_version: "1.0" },
     })
-    await page.request.post(`${apiOrigin()}/members/me/consents`, {
+    await page.request.post(`${apiOrigin()}/consents`, {
       data: { consent_type: "HEALTH_DATA_PROCESSING_CONSENT", document_version: "1.0" },
     })
   },
@@ -253,17 +243,17 @@ Given(
       },
     })
 
-    await page.request.post(`${apiOrigin()}/members/me/consents`, {
+    await page.request.post(`${apiOrigin()}/consents`, {
       data: { consent_type: "TERMS_AND_CONDITIONS", document_version: "1.0" },
     })
-    await page.request.post(`${apiOrigin()}/members/me/consents`, {
+    await page.request.post(`${apiOrigin()}/consents`, {
       data: { consent_type: "PRIVACY_POLICY", document_version: "1.0" },
     })
-    await page.request.post(`${apiOrigin()}/members/me/consents`, {
+    await page.request.post(`${apiOrigin()}/consents`, {
       data: { consent_type: "HEALTH_DATA_PROCESSING_CONSENT", document_version: "1.0" },
     })
-    const formConsentRes = await page.request.post(`${apiOrigin()}/members/me/consents`, {
-      data: { consent_type: "FORM_CONSENT", form_type: formType, document_version: "1.0" },
+    const formConsentRes = await page.request.post(`${apiOrigin()}/consents`, {
+      data: { consent_type: "FORM_CONSENT", form_type: formType, document_version: "1" },
     })
     expect(formConsentRes.ok(), await formConsentRes.text()).toBeTruthy()
   },

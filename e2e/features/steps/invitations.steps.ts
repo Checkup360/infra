@@ -351,7 +351,7 @@ Given(
 
     await createAndRedeemOrgInvite(page, {
       organizationId,
-      role: "admin",
+      role: "superadmin",
       email,
       password,
     })
@@ -469,7 +469,7 @@ When(
       const path = new URL(response.url()).pathname
       return (
         response.request().method() === "POST" &&
-        path.startsWith("/invites/") &&
+        path.includes("/invites/") &&
         path.endsWith("/redeem")
       )
     })

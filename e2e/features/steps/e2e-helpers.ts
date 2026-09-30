@@ -57,14 +57,26 @@ export async function apiSignInAsSuperuser(
   page: Page,
   context = "E2E scenarios",
 ): Promise<void> {
+  const credentials = {
+    username: superuserEmail(context),
+    password: superuserPassword(context),
+  }
   const res = await page.request.post(`${apiOrigin()}/auth/login`, {
-    form: {
-      username: superuserEmail(context),
-      password: superuserPassword(context),
-    },
+    form: credentials,
     maxRedirects: 0,
   })
   expect(res.ok() || res.status() === 303, await res.text()).toBeTruthy()
+
+  for (const origin of portalOrigins()) {
+    try {
+      await page.request.post(`${origin}/api/auth/login`, {
+        form: credentials,
+        maxRedirects: 0,
+      })
+    } catch {
+      // Ignore if portal is unavailable
+    }
+  }
 }
 
 export function uniqueSuffix(): string {
@@ -102,7 +114,7 @@ export async function createAndRedeemOrgInvite(
     password,
   }: {
     organizationId: string
-    role: "admin" | "member"
+    role: "admin" | "member" | "superadmin"
     email: string
     password: string
   },

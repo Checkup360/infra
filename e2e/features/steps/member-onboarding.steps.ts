@@ -124,13 +124,29 @@ When(
     _alcohol: string,
     _exercise: string,
   ) => {
-    const heightInMeters = parseFloat(height) > 10 ? (parseFloat(height) / 100).toString() : height
     await page.getByLabel(/weight/i).fill(weight)
-    await page.getByLabel(/height/i).fill(heightInMeters)
+    await page.getByLabel(/height/i).fill(height)
+
+    const nextBtn = page.getByRole("button", { name: /next step|next|continue/i }).first()
+    await nextBtn.click()
   },
 )
 
 When("they submit the onboarding form", async ({ page }) => {
+  const terms = page.locator("#accept-terms")
+  if (await terms.isVisible()) {
+    if ((await terms.getAttribute("data-state")) !== "checked") {
+      await terms.click()
+    }
+    const privacy = page.locator("#accept-privacy")
+    if ((await privacy.getAttribute("data-state")) !== "checked") {
+      await privacy.click()
+    }
+    const health = page.locator("#accept-health")
+    if ((await health.getAttribute("data-state")) !== "checked") {
+      await health.click()
+    }
+  }
   const submitPromise = page.waitForResponse(
     (response) =>
       response.url().includes("/members/me/details") &&
@@ -167,6 +183,19 @@ Given(
       },
     })
     expect(res.ok(), await res.text()).toBeTruthy()
+
+    await page.request.post(`${apiOrigin()}/consents`, {
+      data: { consent_type: "TERMS_AND_CONDITIONS", document_version: "1.0" },
+    })
+    await page.request.post(`${apiOrigin()}/consents`, {
+      data: { consent_type: "PRIVACY_POLICY", document_version: "1.0" },
+    })
+    await page.request.post(`${apiOrigin()}/consents`, {
+      data: { consent_type: "HEALTH_DATA_PROCESSING_CONSENT", document_version: "1.0" },
+    })
+    await page.request.post(`${apiOrigin()}/consents`, {
+      data: { consent_type: "FORM_CONSENT", form_type: "biometrics", document_version: "1" },
+    })
 
     const user = await expectCurrentUser(page)
     expect(user.requires_onboarding).toBe(false)
@@ -280,6 +309,20 @@ Then(
 )
 
 When("they submit the onboarding form expecting failure", async ({ page }) => {
+  const terms = page.locator("#accept-terms")
+  if (await terms.isVisible()) {
+    if ((await terms.getAttribute("data-state")) !== "checked") {
+      await terms.click()
+    }
+    const privacy = page.locator("#accept-privacy")
+    if ((await privacy.getAttribute("data-state")) !== "checked") {
+      await privacy.click()
+    }
+    const health = page.locator("#accept-health")
+    if ((await health.getAttribute("data-state")) !== "checked") {
+      await health.click()
+    }
+  }
   const submitPromise = page.waitForResponse(
     (response) =>
       response.url().includes("/members/me/details") &&
