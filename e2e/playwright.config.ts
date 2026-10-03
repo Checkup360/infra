@@ -41,6 +41,7 @@ export default defineConfig({
   ],
 
   globalSetup: "./global-setup.ts",
+  globalTeardown: "./global-teardown.ts",
 
   metadata: {
     apiOrigin: PUBLIC_API_ORIGIN,
