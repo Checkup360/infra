@@ -69,8 +69,8 @@ Then("the employee table displays the registered members and summary KPIs", asyn
   const email1 = invitationWorld.invitedEmail!
   const email2 = invitationWorld.memberLastName!
 
-  await expect(page.getByRole("heading", { name: "Employees" }).first()).toBeVisible()
-  await expect(page.getByText(/total employees/i).first()).toBeVisible()
+  await expect(page.getByRole("heading", { name: /members|employees/i }).first()).toBeVisible()
+  await expect(page.getByText(/total members|total employees/i).first()).toBeVisible()
 
   await expect(page.locator("tbody").getByText(email1)).toBeVisible({ timeout: 10000 })
   await expect(page.locator("tbody").getByText(email2)).toBeVisible({ timeout: 10000 })
