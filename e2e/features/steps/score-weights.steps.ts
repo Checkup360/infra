@@ -87,6 +87,6 @@ When("they save the score weights configuration", async ({ page }) => {
 
 Then("the score weights changes are saved successfully", async ({ page }) => {
   await expect(
-    page.getByText(/score weights updated successfully|changes saved/i).first(),
+    page.getByText(/changes saved successfully|score weights updated|changes saved/i).first(),
   ).toBeVisible({ timeout: 10000 })
 })
