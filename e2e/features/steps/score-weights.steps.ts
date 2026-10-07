@@ -49,7 +49,7 @@ When("the org admin navigates to the score weights page", async ({ page }) => {
 
 Then("they see the score weights dashboard heading", async ({ page }) => {
   await expect(
-    page.getByRole("heading", { name: /score weights/i }).first(),
+    page.getByRole("heading", { name: /score configuration|score weights/i }).first(),
   ).toBeVisible({ timeout: 10000 })
 })
 
@@ -67,11 +67,15 @@ Given("the org admin is on the score weights page", async ({ page }) => {
     (url) => url.origin === dashboardOrigin() && url.pathname === "/score-weights",
   )
   await expect(
-    page.getByRole("heading", { name: /score weights/i }).first(),
+    page.getByRole("heading", { name: /score configuration|score weights/i }).first(),
   ).toBeVisible({ timeout: 10000 })
 })
 
 When("they apply balanced weights across score categories", async ({ page }) => {
+  const switchToggle = page.getByRole("switch").first()
+  if (await switchToggle.isVisible()) {
+    await switchToggle.click()
+  }
   const balanceBtn = page
     .getByRole("button", { name: /reset to balanced|enable all modules|balance/i })
     .first()
