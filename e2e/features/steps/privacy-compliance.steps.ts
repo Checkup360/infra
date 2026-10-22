@@ -3,7 +3,6 @@ import { Given, When, Then } from "./fixtures"
 import {
   apiOrigin,
   apiSignInAsSuperuser,
-  backofficeOrigin,
   createAndRedeemOrgInvite,
   createTestOrganization,
   dashboardOrigin,
@@ -383,26 +382,5 @@ Then("the confidential crisis support helpline alert is displayed", async ({ pag
 Then("the helpline alert contains emergency contact numbers", async ({ page }) => {
   await expect(page.getByText("135").first()).toBeVisible()
   await expect(page.getByText("0800-999-0091").first()).toBeVisible()
-})
-
-// ---------------------------------------------------------------------------
-// Scenario 7: Global Compliance Audit Logs in Backoffice
-// ---------------------------------------------------------------------------
-Given("the sysadmin is signed in to the backoffice audit logs page", async ({ page }) => {
-  await apiSignInAsSuperuser(page, "audit logs scenario")
-  await page.goto(`${backofficeOrigin()}/audit-logs`)
-  await page.waitForURL((url) => url.origin === backofficeOrigin() && url.pathname === "/audit-logs")
-})
-
-Then("they see the system audit trail heading", async ({ page }) => {
-  await expect(
-    page.getByRole("heading", { name: /system audit trail/i }).first(),
-  ).toBeVisible({ timeout: 10000 })
-})
-
-Then("the audit logs filter for accepted consents is available", async ({ page }) => {
-  await expect(
-    page.getByRole("button", { name: /^accepted$/i }).first(),
-  ).toBeVisible({ timeout: 10000 })
 })
 

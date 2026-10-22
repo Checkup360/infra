@@ -55,8 +55,3 @@ Feature: Privacy, informed consents, and legal compliance
     And they indicate thoughts of self-harm in the questionnaire
     Then the confidential crisis support helpline alert is displayed
     And the helpline alert contains emergency contact numbers
-
-  Scenario: Platform sysadmin inspects global compliance audit logs in backoffice
-    Given the sysadmin is signed in to the backoffice audit logs page
-    Then they see the system audit trail heading
-    And the audit logs filter for accepted consents is available

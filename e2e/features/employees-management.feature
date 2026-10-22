@@ -18,3 +18,7 @@ Feature: Employee and member management in Dashboard
     Given there is an unassigned member in the organization
     When the org admin assigns the member to a department
     Then the member detail page displays the updated department assignment
+
+  Scenario: Standard member without admin role is denied access to the dashboard
+    When a member without admin role navigates to the dashboard
+    Then they see the access denied page with a 403 error

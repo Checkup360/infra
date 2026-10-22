@@ -129,3 +129,23 @@ Then("the member detail page displays the updated department assignment", async 
   const deptName = invitationWorld.memberFirstName!
   await expect(page.getByText(deptName).first()).toBeVisible({ timeout: 10000 })
 })
+
+When("a member without admin role navigates to the dashboard", async ({ page, invitationWorld }) => {
+  const suffix = uniqueSuffix()
+  const memberEmail = `e2e-unauthorized-${suffix}@example.com`
+  const memberPass = `MemberPass123!${suffix}`
+  await createAndRedeemOrgInvite(page, {
+    organizationId: invitationWorld.organizationId!,
+    role: "member",
+    email: memberEmail,
+    password: memberPass,
+  })
+  await page.goto(`${dashboardOrigin()}/`)
+})
+
+Then("they see the access denied page with a 403 error", async ({ page }) => {
+  await page.waitForURL((url) => url.origin === dashboardOrigin() && url.pathname === "/access-denied")
+  await expect(page.getByRole("heading", { name: /access denied/i }).first()).toBeVisible({ timeout: 10000 })
+  await expect(page.getByText("403").first()).toBeVisible()
+  await expect(page.getByText(/only organization admins can access the dashboard/i).first()).toBeVisible()
+})
