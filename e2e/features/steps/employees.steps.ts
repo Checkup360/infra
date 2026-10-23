@@ -81,7 +81,7 @@ When("the org admin filters employees by email search", async ({ page, invitatio
   await page.waitForURL((url) => url.pathname === "/employees")
 
   const email1 = invitationWorld.invitedEmail!
-  await page.getByPlaceholder(/filter by email or area/i).fill(email1)
+  await page.getByPlaceholder(/filter by name, email or area/i).fill(email1)
 })
 
 Then("only the matching employee is displayed in the table", async ({ page, invitationWorld }) => {
@@ -104,7 +104,7 @@ When("the org admin assigns the member to a department", async ({ page, invitati
   const email1 = invitationWorld.invitedEmail!
   const deptName = invitationWorld.memberFirstName!
 
-  await page.getByPlaceholder(/filter by email or area/i).fill(email1)
+  await page.getByPlaceholder(/filter by name, email or area/i).fill(email1)
   const cell = page.locator("tbody").getByText(email1).first()
   await cell.click()
 
