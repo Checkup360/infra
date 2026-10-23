@@ -83,6 +83,11 @@ export function uniqueSuffix(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 }
 
+// Fits entity names with tight backend limits (e.g. departments: 40 chars).
+export function shortUniqueSuffix(): string {
+  return Math.random().toString(36).slice(2, 8)
+}
+
 export async function expectCurrentUser(page: Page): Promise<any> {
   const me = await page.request.get(`${apiOrigin()}/auth/me`)
   expect(me.ok(), await me.text()).toBeTruthy()

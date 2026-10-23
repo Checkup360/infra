@@ -5,6 +5,7 @@ import {
   createAndRedeemOrgInvite,
   createTestOrganization,
   dashboardOrigin,
+  shortUniqueSuffix,
   uniqueSuffix,
 } from "./e2e-helpers"
 
@@ -37,7 +38,7 @@ Given(
 )
 
 When("the org admin creates a department named {string}", async ({ page, invitationWorld }, name: string) => {
-  const suffix = uniqueSuffix()
+  const suffix = shortUniqueSuffix()
   const deptName = `${name} ${suffix}`
   invitationWorld.memberFirstName = deptName
 
@@ -58,7 +59,7 @@ Given(
   "there are departments named {string} and {string}",
   async ({ page, invitationWorld }, name1: string, name2: string) => {
     const orgId = invitationWorld.organizationId!
-    const suffix = uniqueSuffix()
+    const suffix = shortUniqueSuffix()
 
     const deptName1 = `${name1} ${suffix}`
     const deptName2 = `${name2} ${suffix}`
@@ -91,7 +92,7 @@ Then("only the {string} department card is visible", async ({ page, invitationWo
 
 Given("there is a department named {string}", async ({ page, invitationWorld }, name: string) => {
   const orgId = invitationWorld.organizationId!
-  const suffix = uniqueSuffix()
+  const suffix = shortUniqueSuffix()
   const deptName = `${name} ${suffix}`
 
   const res = await page.request.post(`${apiOrigin()}/organizations/${orgId}/departments`, {
@@ -112,7 +113,7 @@ When(
   "the org admin edits the department name from {string} to {string}",
   async ({ page, invitationWorld }, _oldName: string, newName: string) => {
     const oldDeptName = invitationWorld.memberFirstName!
-    const suffix = uniqueSuffix()
+    const suffix = shortUniqueSuffix()
     const updatedDeptName = `${newName} ${suffix}`
     invitationWorld.memberLastName = updatedDeptName
 
@@ -144,7 +145,7 @@ Then("the updated department name {string} is displayed", async ({ page, invitat
 
 Given("there is an unassigned department named {string}", async ({ page, invitationWorld }, name: string) => {
   const orgId = invitationWorld.organizationId!
-  const suffix = uniqueSuffix()
+  const suffix = shortUniqueSuffix()
   const deptName = `${name} ${suffix}`
 
   const res = await page.request.post(`${apiOrigin()}/organizations/${orgId}/departments`, {
